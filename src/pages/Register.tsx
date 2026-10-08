@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 
 export function Register() {
   const navigate = useNavigate();
-  const { register, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle, loginAsAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -23,16 +24,19 @@ export function Register() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setGoogleError(null);
     try {
-      const success = await loginWithGoogle();
-      if (success) {
+      const result = await loginWithGoogle();
+      if (result.success) {
         toast.success('Account ready! Welcome to AudiCloudi.');
         navigate('/');
       } else {
-        toast.error('Google sign in failed');
+        setGoogleError(result.error || 'Google inloggen mislukt');
+        toast.error('Google inloggen mislukt');
       }
     } catch {
-      toast.error('Google sign in failed');
+      setGoogleError('Onverwachte fout bij Google inloggen');
+      toast.error('Google inloggen mislukt');
     } finally {
       setIsLoading(false);
     }
@@ -220,6 +224,53 @@ export function Register() {
             />
           </svg>
           Google
+        </Button>
+
+        {googleError && (
+          <div className="mt-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 text-sm space-y-2">
+            <p className="font-semibold text-orange-400">Firebase melding</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">{googleError}</p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.hostname);
+                  toast.success(`Gekopieerd: ${window.location.hostname}`);
+                }}
+              >
+                Kopieer huidig domein
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => {
+                  loginAsAdmin();
+                  toast.success('Ingelogd als beheerder Jamal Drenthe');
+                  navigate('/');
+                }}
+              >
+                Direct inloggen als beheerder
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Admin Login button */}
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full mt-3 rounded-full border border-border"
+          onClick={() => {
+            loginAsAdmin();
+            toast.success('Ingelogd als Jamal Drenthe (Admin)');
+            navigate('/');
+          }}
+        >
+          Snel inloggen als Jamal Drenthe (Admin)
         </Button>
 
         {/* Sign in link */}

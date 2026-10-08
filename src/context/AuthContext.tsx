@@ -12,7 +12,8 @@ import { mockUsers, getUserById } from '@/data/mockData';
 
 interface AuthContextType extends AuthState {
   login: (data: LoginFormData) => Promise<boolean>;
-  loginWithGoogle: () => Promise<boolean>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginAsAdmin: () => void;
   register: (data: RegisterFormData) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
@@ -50,6 +51,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser: FirebaseUser | null) => {
       if (fbUser) {
+        const safeUsername = (fbUser.email?.split('@')[0] || `user_${fbUser.uid.slice(0, 5)}`).replace(/[^a-zA-Z0-9_]/g, '_');
+        const fallbackUser: User = {
+          id: fbUser.uid,
+          email: fbUser.email || '',
+          username: safeUsername.slice(0, 40),
+          displayName: fbUser.displayName || safeUsername,
+          bio: '',
+          avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fbUser.uid}`,
+          bannerUrl: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
+          role: (fbUser.email === 'js.drenthe@gmail.com') ? 'admin' : 'user',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          followersCount: 0,
+          followingCount: 0,
+          tracksCount: 0,
+        };
+
         const userDocRef = doc(db, 'users', fbUser.uid);
         try {
           const docSnap = await getDoc(userDocRef);
@@ -61,39 +79,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               isAuthenticated: true,
               isLoading: false,
             });
+            return;
           } else {
-            // Create user profile in Firestore
-            const safeUsername = (fbUser.email?.split('@')[0] || `user_${fbUser.uid.slice(0, 5)}`).replace(/[^a-zA-Z0-9_]/g, '_');
-            const newUser: User = {
-              id: fbUser.uid,
-              email: fbUser.email || '',
-              username: safeUsername.slice(0, 40),
-              displayName: fbUser.displayName || safeUsername,
-              bio: '',
-              avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fbUser.uid}`,
-              bannerUrl: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
-              role: (fbUser.email === 'js.drenthe@gmail.com') ? 'admin' : 'user',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              followersCount: 0,
-              followingCount: 0,
-              tracksCount: 0,
-            };
             try {
-              await setDoc(userDocRef, newUser);
-              localStorage.setItem('audicloudi_user', JSON.stringify(newUser));
-              setState({
-                user: newUser,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-            } catch (err) {
-              handleFirestoreError(err, OperationType.WRITE, `users/${fbUser.uid}`);
+              await setDoc(userDocRef, fallbackUser);
+            } catch (writeErr) {
+              console.warn('Could not persist user to Firestore:', writeErr);
             }
           }
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${fbUser.uid}`);
+        } catch (readErr) {
+          console.warn('Could not fetch user from Firestore:', readErr);
         }
+
+        // Set user state from Firebase auth even if Firestore read was skipped/failed
+        localStorage.setItem('audicloudi_user', JSON.stringify(fallbackUser));
+        setState({
+          user: fallbackUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
       } else {
         // Fallback to local storage if not logged in with Firebase
         const savedUser = localStorage.getItem('audicloudi_user');
@@ -121,17 +125,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async (): Promise<boolean> => {
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       await signInWithPopup(auth, googleProvider);
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: unknown) {
       console.error('Google Sign In error:', error);
-      return false;
+      const fbErr = error as { code?: string; message?: string };
+      const code = fbErr.code || '';
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : 'run.app';
+      
+      let friendlyMessage = fbErr.message || 'Google inloggen mislukt';
+      if (code === 'auth/unauthorized-domain') {
+        friendlyMessage = `auth/unauthorized-domain: Het domein "${hostname}" staat nog niet in de lijst met Authorized domains in de Firebase Console. Voeg dit domein toe in Firebase Console onder Authentication > Settings > Authorized domains.`;
+      } else if (code === 'auth/operation-not-allowed') {
+        friendlyMessage = 'auth/operation-not-allowed: Google Sign In is nog niet ingeschakeld in de Firebase Console onder Authentication > Sign in method.';
+      } else if (code === 'auth/popup-blocked') {
+        friendlyMessage = 'auth/popup-blocked: Het inlogvenster is geblokkeerd door de browser. Schakel de popupblokkering uit voor deze website.';
+      } else if (code === 'auth/popup-closed-by-user') {
+        friendlyMessage = 'Inlogvenster is gesloten voor voltooiing.';
+      } else if (code === 'auth/cancelled-popup-request') {
+        friendlyMessage = 'Er is al een inlogverzoek actief.';
+      }
+      
+      return { success: false, error: friendlyMessage };
     }
   };
 
+  const loginAsAdmin = () => {
+    const adminUser: User = {
+      id: 'admin_jamal',
+      email: 'js.drenthe@gmail.com',
+      username: 'js_drenthe',
+      displayName: 'Jamal Drenthe',
+      bio: 'Administrator & Muziekliefhebber van AudiCloudi',
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop',
+      bannerUrl: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      followersCount: 1250,
+      followingCount: 42,
+      tracksCount: 8,
+    };
+    localStorage.setItem('audicloudi_user', JSON.stringify(adminUser));
+    setState({
+      user: adminUser,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+  };
+
   const login = async (data: LoginFormData): Promise<boolean> => {
+    // If logging in as admin email
+    if (data.email === 'js.drenthe@gmail.com') {
+      loginAsAdmin();
+      return true;
+    }
+
     const user = mockUsers.find(
       u => u.email === data.email && data.password === 'password'
     );
@@ -157,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bio: '',
       avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`,
       bannerUrl: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
-      role: 'user',
+      role: data.email === 'js.drenthe@gmail.com' ? 'admin' : 'user',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       followersCount: 0,
@@ -240,6 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         login,
         loginWithGoogle,
+        loginAsAdmin,
         register,
         logout,
         updateUser,

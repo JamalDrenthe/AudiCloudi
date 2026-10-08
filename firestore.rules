@@ -57,7 +57,7 @@ service cloud.firestore {
       allow get: if isValidId(userId);
       allow list: if isSignedIn();
       allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId &&
-        isValidUser(incoming()) && incoming().role == 'user';
+        isValidUser(incoming()) && (incoming().role == 'user' || isAdmin());
       allow update: if isSignedIn() && isValidId(userId) &&
         (request.auth.uid == userId || isAdmin()) &&
         isValidUser(incoming()) &&
