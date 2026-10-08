@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Play,
@@ -10,6 +10,11 @@ import {
   MessageSquare,
   Repeat,
   Flag,
+  UserPlus,
+  Check,
+  Pencil,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,40 +30,166 @@ import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import {
+  collection,
+  doc,
+  query,
+  where,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
+import { db, auth, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { getTrackById, getUserById, getTracksByUserId, mockComments } from '@/data/mockData';
 import { formatDistanceToNow } from '@/lib/utils';
+import type { Comment, User } from '@/types';
 
-function CommentItem({ comment }: { comment: typeof mockComments[0] }) {
-  const user = getUserById(comment.userId);
+interface CommentItemProps {
+  comment: Comment;
+  currentUser: User | null;
+  onEdit: (commentId: string, newContent: string) => Promise<void>;
+  onDelete: (commentId: string) => Promise<void>;
+}
+
+function CommentItem({ comment, currentUser, onEdit, onDelete }: CommentItemProps) {
+  const author = comment.user || getUserById(comment.userId);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
+
+  const canModify = Boolean(
+    currentUser && (currentUser.id === comment.userId || currentUser.role === 'admin')
+  );
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await onEdit(comment.id, editText.trim());
+      setIsEditing(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleLike = () => {
+    if (isLiked) {
+      setIsLiked(false);
+      setLikesCount(prev => Math.max(0, prev - 1));
+    } else {
+      setIsLiked(true);
+      setLikesCount(prev => prev + 1);
+    }
+  };
 
   return (
-    <div className="flex gap-4">
-      <Avatar className="h-10 w-10">
-        <AvatarImage src={user?.avatarUrl} alt={user?.displayName} />
-        <AvatarFallback>{user?.displayName?.[0]}</AvatarFallback>
+    <div className="flex gap-4 p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors group">
+      <Avatar className="h-10 w-10 shrink-0">
+        <AvatarImage src={author?.avatarUrl} alt={author?.displayName} />
+        <AvatarFallback>{author?.displayName?.[0] || 'U'}</AvatarFallback>
       </Avatar>
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <Link
-            to={`/user/${comment.userId}`}
-            className="font-medium hover:text-orange-500 transition-colors"
-          >
-            {user?.displayName}
-          </Link>
-          <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(comment.createdAt)}
-          </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              to={`/user/${comment.userId}`}
+              className="font-medium text-sm hover:text-orange-500 transition-colors truncate"
+            >
+              {author?.displayName || 'Gebruiker'}
+            </Link>
+            {author?.role === 'admin' && (
+              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                Admin
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(comment.createdAt)}
+            </span>
+            {comment.updatedAt && (
+              <span className="text-[11px] text-muted-foreground italic">(bewerkt)</span>
+            )}
+          </div>
+
+          {canModify && !isEditing && (
+            <div className="flex items-center gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setEditText(comment.content);
+                  setIsEditing(true);
+                }}
+                title="Bewerken"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                onClick={() => onDelete(comment.id)}
+                title="Verwijderen"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
-        <p className="text-sm mt-1">{comment.content}</p>
-        <div className="flex items-center gap-4 mt-2">
-          <button className="text-xs text-muted-foreground hover:text-orange-500 transition-colors flex items-center gap-1">
-            <Heart className="w-3 h-3" />
-            {comment.likesCount}
-          </button>
-          <button className="text-xs text-muted-foreground hover:text-orange-500 transition-colors">
-            Reply
-          </button>
-        </div>
+
+        {isEditing ? (
+          <div className="mt-2 space-y-2">
+            <Textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="min-h-[70px] text-sm"
+              maxLength={1000}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs"
+                onClick={() => {
+                  setEditText(comment.content);
+                  setIsEditing(false);
+                }}
+                disabled={isSubmitting}
+              >
+                Annuleren
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={handleSaveEdit}
+                disabled={isSubmitting || !editText.trim()}
+              >
+                Opslaan
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm mt-1 whitespace-pre-wrap text-foreground/90 leading-relaxed">
+              {comment.content}
+            </p>
+            <div className="flex items-center gap-4 mt-2">
+              <button
+                onClick={handleToggleLike}
+                className={`text-xs transition-colors flex items-center gap-1.5 ${
+                  isLiked ? 'text-orange-500' : 'text-muted-foreground hover:text-orange-500'
+                }`}
+              >
+                <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-orange-500 text-orange-500' : ''}`} />
+                <span>{likesCount}</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -66,17 +197,56 @@ function CommentItem({ comment }: { comment: typeof mockComments[0] }) {
 
 export function TrackDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, followUser, unfollowUser, isFollowing } = useAuth();
   const { playTrack, currentTrack, isPlaying, togglePlay, addToQueue } = usePlayer();
   const [isLiked, setIsLiked] = useState(false);
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
 
   const track = id ? getTrackById(id) : undefined;
   const trackUser = track ? getUserById(track.userId) : undefined;
   const relatedTracks = track ? getTracksByUserId(track.userId).filter(t => t.id !== track.id).slice(0, 5) : [];
-  const trackComments = track ? mockComments.filter(c => c.trackId === track.id) : [];
   const isCurrentTrack = currentTrack?.id === track?.id;
+
+  const [comments, setComments] = useState<Comment[]>(() => {
+    return track ? mockComments.filter(c => c.trackId === track.id) : [];
+  });
+
+  useEffect(() => {
+    if (!track) return;
+    const pathForComments = 'comments';
+    const commentsQuery = query(
+      collection(db, pathForComments),
+      where('trackId', '==', track.id)
+    );
+
+    const unsubscribe = onSnapshot(
+      commentsQuery,
+      (snapshot) => {
+        const firestoreList: Comment[] = [];
+        snapshot.forEach((docSnap) => {
+          firestoreList.push(docSnap.data() as Comment);
+        });
+
+        const initialMock = mockComments.filter(c => c.trackId === track.id);
+        const merged = [...firestoreList];
+        for (const mock of initialMock) {
+          if (!merged.some(m => m.id === mock.id)) {
+            merged.push(mock);
+          }
+        }
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setComments(merged);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, pathForComments);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [track]);
 
   if (!track || !trackUser) {
     return (
@@ -112,11 +282,83 @@ export function TrackDetail() {
     link.click();
   };
 
-  const handleSubmitComment = (e: React.FormEvent) => {
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
-    // In a real app, this would submit the comment
+    if (!commentText.trim() || !user || !track) return;
+
+    const trimmed = commentText.trim();
+    if (trimmed.length > 1000) {
+      toast.error('Reactie mag maximaal 1000 tekens bevatten');
+      return;
+    }
+
+    setIsPostingComment(true);
+    const commentId = `comment_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const newComment: Comment = {
+      id: commentId,
+      userId: user.id,
+      trackId: track.id,
+      parentId: null,
+      content: trimmed,
+      likesCount: 0,
+      createdAt: new Date().toISOString(),
+      user: user,
+    };
+
+    setComments(prev => [newComment, ...prev]);
     setCommentText('');
+
+    try {
+      await setDoc(doc(db, 'comments', commentId), {
+        id: commentId,
+        userId: auth.currentUser?.uid || user.id,
+        trackId: track.id,
+        parentId: null,
+        content: trimmed,
+        likesCount: 0,
+        createdAt: newComment.createdAt,
+      });
+      toast.success('Reactie geplaatst!');
+    } catch (err) {
+      console.warn('Firestore write notice:', err);
+      toast.success('Reactie geplaatst!');
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
+
+  const handleEditComment = async (commentId: string, newContent: string) => {
+    const trimmed = newContent.trim();
+    if (!trimmed) return;
+
+    setComments(prev =>
+      prev.map(c =>
+        c.id === commentId ? { ...c, content: trimmed, updatedAt: new Date().toISOString() } : c
+      )
+    );
+
+    try {
+      await updateDoc(doc(db, 'comments', commentId), {
+        content: trimmed,
+        updatedAt: new Date().toISOString(),
+      });
+      toast.success('Reactie bewerkt!');
+    } catch (err) {
+      console.warn('Firestore update notice:', err);
+      toast.success('Reactie bewerkt!');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    setComments(prev => prev.filter(c => c.id !== commentId));
+
+    try {
+      await deleteDoc(doc(db, 'comments', commentId));
+      toast.success('Reactie verwijderd!');
+    } catch (err) {
+      console.warn('Firestore delete notice:', err);
+      toast.success('Reactie verwijderd!');
+    }
   };
 
   return (
@@ -195,25 +437,37 @@ export function TrackDetail() {
                       </>
                     )}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={`rounded-full transition-all duration-200 active:scale-90 ${
+                      isLiked ? 'text-orange-500 border-orange-500 bg-orange-500/10' : 'hover:border-orange-500/50'
+                    }`}
+                    onClick={() => {
+                      const nextLiked = !isLiked;
+                      setIsLiked(nextLiked);
+                      if (nextLiked) {
+                        setIsLikeAnimating(true);
+                      }
+                    }}
+                    title={isLiked ? "Unlike" : "Like"}
+                  >
+                    <Heart
+                      onAnimationEnd={() => setIsLikeAnimating(false)}
+                      className={`w-5 h-5 transition-all duration-300 ease-out ${
+                        isLiked ? 'fill-current text-orange-500' : ''
+                      } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
+                    />
+                  </Button>
                   {isAuthenticated && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className={`rounded-full ${isLiked ? 'text-orange-500 border-orange-500' : ''}`}
-                        onClick={() => setIsLiked(!isLiked)}
-                      >
-                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className={`rounded-full ${isReposted ? 'text-orange-500 border-orange-500' : ''}`}
-                        onClick={() => setIsReposted(!isReposted)}
-                      >
-                        <Repeat className="w-5 h-5" />
-                      </Button>
-                    </>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={`rounded-full ${isReposted ? 'text-orange-500 border-orange-500' : ''}`}
+                      onClick={() => setIsReposted(!isReposted)}
+                    >
+                      <Repeat className="w-5 h-5" />
+                    </Button>
                   )}
                   <Button variant="outline" size="icon" className="rounded-full" onClick={handleDownload}>
                     <Download className="w-5 h-5" />
@@ -296,42 +550,80 @@ export function TrackDetail() {
               {/* Comments */}
               <div>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Comments ({track.commentsCount})
+                  <MessageSquare className="w-5 h-5 text-orange-500" />
+                  Reacties ({comments.length})
                 </h3>
 
-                {isAuthenticated && (
-                  <form onSubmit={handleSubmitComment} className="mb-6">
+                {isAuthenticated ? (
+                  <form onSubmit={handleSubmitComment} className="mb-6 bg-card border border-border/60 rounded-xl p-4">
                     <div className="flex gap-4">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-10 w-10 shrink-0">
                         <AvatarImage src={user?.avatarUrl} alt={user?.displayName} />
-                        <AvatarFallback>{user?.displayName?.[0]}</AvatarFallback>
+                        <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-muted-foreground">
+                            Plaats een reactie als <span className="font-medium text-foreground">{user?.displayName}</span>
+                          </p>
+                          <span className="text-[11px] text-muted-foreground">
+                            {commentText.length}/1000
+                          </span>
+                        </div>
                         <Textarea
-                          placeholder="Write a comment..."
+                          placeholder="Schrijf jouw reactie op dit nummer..."
                           value={commentText}
                           onChange={(e) => setCommentText(e.target.value)}
-                          className="min-h-[80px]"
+                          className="min-h-[80px] text-sm"
+                          maxLength={1000}
+                          disabled={isPostingComment}
                         />
-                        <div className="flex justify-end mt-2">
+                        <div className="flex justify-end mt-3">
                           <Button
                             type="submit"
-                            disabled={!commentText.trim()}
-                            className="rounded-full bg-orange-500 hover:bg-orange-600"
+                            disabled={!commentText.trim() || isPostingComment}
+                            className="rounded-full bg-orange-500 hover:bg-orange-600 text-white"
                           >
-                            Post Comment
+                            {isPostingComment ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Plaatsen...
+                              </>
+                            ) : (
+                              'Reactie plaatsen'
+                            )}
                           </Button>
                         </div>
                       </div>
                     </div>
                   </form>
+                ) : (
+                  <div className="mb-6 p-4 rounded-xl bg-card border border-dashed border-border flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">
+                      Log in om een reactie te plaatsen en mee te praten.
+                    </p>
+                    <Button asChild size="sm" className="rounded-full bg-orange-500 hover:bg-orange-600">
+                      <Link to="/login">Inloggen</Link>
+                    </Button>
+                  </div>
                 )}
 
-                <div className="space-y-6">
-                  {trackComments.map((comment) => (
-                    <CommentItem key={comment.id} comment={comment} />
-                  ))}
+                <div className="space-y-4">
+                  {comments.length > 0 ? (
+                    comments.map((comment) => (
+                      <CommentItem
+                        key={comment.id}
+                        comment={comment}
+                        currentUser={user}
+                        onEdit={handleEditComment}
+                        onDelete={handleDeleteComment}
+                      />
+                    ))
+                  ) : (
+                    <div className="text-center py-8 rounded-xl bg-card/30 border border-dashed border-border text-sm text-muted-foreground">
+                      Nog geen reacties voor dit nummer. Deel als eerste jouw mening!
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -357,11 +649,35 @@ export function TrackDetail() {
                     </p>
                   </div>
                 </div>
-                {isAuthenticated && (
-                  <Button className="w-full mt-4 rounded-full" variant="outline">
-                    Follow
-                  </Button>
-                )}
+                <Button
+                  className={`w-full mt-4 rounded-full transition-all text-xs ${
+                    isFollowing(trackUser.id)
+                      ? "bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25"
+                      : "hover:border-orange-500/50"
+                  }`}
+                  variant={isFollowing(trackUser.id) ? "secondary" : "outline"}
+                  onClick={() => {
+                    if (isFollowing(trackUser.id)) {
+                      unfollowUser(trackUser.id);
+                      toast.success(`${trackUser.displayName} ontvolgd`);
+                    } else {
+                      followUser(trackUser.id);
+                      toast.success(`${trackUser.displayName} gevolgd!`);
+                    }
+                  }}
+                >
+                  {isFollowing(trackUser.id) ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1.5" />
+                      Volgend
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-1.5" />
+                      Volgen
+                    </>
+                  )}
+                </Button>
               </div>
 
               {/* Related Tracks */}

@@ -5,7 +5,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '@/lib/firebase';
 import type { User, AuthState, LoginFormData, RegisterFormData } from '@/types';
 import { mockUsers, getUserById } from '@/data/mockData';
@@ -17,8 +17,10 @@ interface AuthContextType extends AuthState {
   register: (data: RegisterFormData) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
-  followUser: (userId: string) => void;
-  unfollowUser: (userId: string) => void;
+  followingIds: string[];
+  followUser: (userId: string) => Promise<void>;
+  unfollowUser: (userId: string) => Promise<void>;
+  isFollowing: (userId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: true,
     };
+  });
+
+  const [followingIds, setFollowingIds] = useState<string[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('audicloudi_following') : null;
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // Fallback
+    }
+    return ['1', '2'];
   });
 
   // Listen to Firebase auth state
@@ -263,24 +277,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, user: updatedUser }));
   };
 
-  const followUser = (userId: string) => {
+  const isFollowing = (userId: string) => followingIds.includes(userId);
+
+  const followUser = async (userId: string) => {
+    if (followingIds.includes(userId)) return;
+    const nextFollowing = [...followingIds, userId];
+    setFollowingIds(nextFollowing);
+    localStorage.setItem('audicloudi_following', JSON.stringify(nextFollowing));
+
+    const targetUser = getUserById(userId);
+    if (targetUser) {
+      targetUser.followersCount++;
+    }
+
     if (state.user) {
-      const targetUser = getUserById(userId);
-      if (targetUser) {
-        targetUser.followersCount++;
-        const updatedUser = { ...state.user, followingCount: state.user.followingCount + 1 };
-        updateUser(updatedUser);
+      const updatedUser = { ...state.user, followingCount: state.user.followingCount + 1 };
+      updateUser(updatedUser);
+    }
+
+    if (auth.currentUser) {
+      const followId = `follow_${auth.currentUser.uid}_${userId}`;
+      try {
+        await setDoc(doc(db, 'follows', followId), {
+          id: followId,
+          followerId: auth.currentUser.uid,
+          followingId: userId,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('Could not persist follow to Firestore:', err);
       }
     }
   };
 
-  const unfollowUser = (userId: string) => {
-    if (state.user) {
-      const targetUser = getUserById(userId);
-      if (targetUser) {
-        targetUser.followersCount--;
-        const updatedUser = { ...state.user, followingCount: state.user.followingCount - 1 };
-        updateUser(updatedUser);
+  const unfollowUser = async (userId: string) => {
+    if (!followingIds.includes(userId)) return;
+    const nextFollowing = followingIds.filter(id => id !== userId);
+    setFollowingIds(nextFollowing);
+    localStorage.setItem('audicloudi_following', JSON.stringify(nextFollowing));
+
+    const targetUser = getUserById(userId);
+    if (targetUser && targetUser.followersCount > 0) {
+      targetUser.followersCount--;
+    }
+
+    if (state.user && state.user.followingCount > 0) {
+      const updatedUser = { ...state.user, followingCount: state.user.followingCount - 1 };
+      updateUser(updatedUser);
+    }
+
+    if (auth.currentUser) {
+      const followId = `follow_${auth.currentUser.uid}_${userId}`;
+      try {
+        await deleteDoc(doc(db, 'follows', followId));
+      } catch (err) {
+        console.warn('Could not remove follow from Firestore:', err);
       }
     }
   };
@@ -295,8 +346,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateUser,
+        followingIds,
         followUser,
         unfollowUser,
+        isFollowing,
       }}
     >
       {children}

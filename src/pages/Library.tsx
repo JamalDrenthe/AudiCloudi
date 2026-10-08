@@ -22,13 +22,13 @@ import { getTrendingTracks, mockPlaylists, mockUsers, getUserById } from '@/data
 
 const recentTracks = getTrendingTracks(10);
 const likedTracks = getTrendingTracks(8).reverse();
-const following = mockUsers.slice(0, 5);
-
 export function Library() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, followingIds } = useAuth();
   const { playTrack } = usePlayer();
   const [activeTab, setActiveTab] = useState('history');
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
+
+  const following = mockUsers.filter(u => followingIds.includes(u.id));
 
   if (!isAuthenticated) {
     return (
@@ -257,22 +257,31 @@ export function Library() {
 
             <TabsContent value="following">
               <h2 className="text-xl font-semibold mb-4">Artists You Follow</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
-                {following.map((user) => (
-                  <Link key={user.id} to={`/user/${user.id}`} className="text-center group">
-                    <Avatar className="w-24 h-24 mx-auto mb-3 ring-4 ring-transparent group-hover:ring-orange-500/30 transition-all">
-                      <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                      <AvatarFallback>{user.displayName[0]}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-medium group-hover:text-orange-500 transition-colors">
-                      {user.displayName}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {user.followersCount.toLocaleString()} followers
-                    </p>
-                  </Link>
-                ))}
-              </div>
+              {following.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+                  {following.map((followedUser) => (
+                    <Link key={followedUser.id} to={`/user/${followedUser.id}`} className="text-center group">
+                      <Avatar className="w-24 h-24 mx-auto mb-3 ring-4 ring-transparent group-hover:ring-orange-500/30 transition-all">
+                        <AvatarImage src={followedUser.avatarUrl} alt={followedUser.displayName} />
+                        <AvatarFallback>{followedUser.displayName[0]}</AvatarFallback>
+                      </Avatar>
+                      <h3 className="font-medium group-hover:text-orange-500 transition-colors">
+                        {followedUser.displayName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {followedUser.followersCount.toLocaleString()} followers
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-card rounded-xl border border-dashed border-border p-8">
+                  <p className="text-muted-foreground mb-4">You are not following any artists yet.</p>
+                  <Button asChild className="rounded-full bg-orange-500 hover:bg-orange-600">
+                    <Link to="/">Discover Artists on Home</Link>
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

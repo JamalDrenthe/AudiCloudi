@@ -588,3 +588,11 @@ export const getNewTracks = (limit: number = 8): Track[] => {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limit);
 };
+
+// Helper function to get latest tracks by followed creator IDs
+export const getTracksByFollowingIds = (followingIds: string[]): Track[] => {
+  if (!followingIds || followingIds.length === 0) return [];
+  return mockTracks
+    .filter(track => followingIds.includes(track.userId))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};

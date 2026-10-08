@@ -73,6 +73,7 @@ export interface Comment {
   content: string;
   likesCount: number;
   createdAt: string;
+  updatedAt?: string;
   user?: User;
   replies?: Comment[];
 }

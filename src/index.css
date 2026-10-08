@@ -140,6 +140,29 @@
   animation: fade-in 0.4s ease-out forwards;
 }
 
+/* Heart like pop animation */
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(0.78);
+  }
+  50% {
+    transform: scale(1.32);
+  }
+  75% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 /* Stagger delays */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }

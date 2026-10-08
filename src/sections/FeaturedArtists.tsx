@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { mockUsers } from '@/data/mockData';
+import { toast } from 'sonner';
 
 function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: number }) {
-  const { isAuthenticated } = useAuth();
+  const { followUser, unfollowUser, isFollowing } = useAuth();
+  const following = isFollowing(artist.id);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,20 +52,38 @@ function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: num
           {artist.followersCount.toLocaleString()} followers
         </p>
       </Link>
-      {isAuthenticated && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3 rounded-full w-full"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          <UserPlus className="w-4 h-4 mr-1" />
-          Follow
-        </Button>
-      )}
+      <Button
+        variant={following ? "secondary" : "outline"}
+        size="sm"
+        className={`mt-3 rounded-full w-full transition-all text-xs ${
+          following
+            ? "bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25"
+            : "hover:border-orange-500/50"
+        }`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (following) {
+            unfollowUser(artist.id);
+            toast.success(`${artist.displayName} ontvolgd`);
+          } else {
+            followUser(artist.id);
+            toast.success(`${artist.displayName} gevolgd!`);
+          }
+        }}
+      >
+        {following ? (
+          <>
+            <Check className="w-3.5 h-3.5 mr-1" />
+            Volgend
+          </>
+        ) : (
+          <>
+            <UserPlus className="w-3.5 h-3.5 mr-1" />
+            Volgen
+          </>
+        )}
+      </Button>
     </div>
   );
 }

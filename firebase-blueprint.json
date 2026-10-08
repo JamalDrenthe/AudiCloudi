@@ -92,6 +92,18 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id", "userId", "title"]
+    },
+    "Follow": {
+      "title": "Follow",
+      "description": "User follow relationship",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "followerId", "followingId"]
     }
   },
   "firestore": {
@@ -114,6 +126,10 @@
     "/playlists/{playlistId}": {
       "schema": "Playlist",
       "description": "Playlists collection"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "Follow relationships collection"
     }
   }
 }

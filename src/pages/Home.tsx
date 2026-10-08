@@ -1,6 +1,7 @@
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { Hero } from '@/sections/Hero';
+import { FollowingFeed } from '@/sections/FollowingFeed';
 import { TrendingTracks } from '@/sections/TrendingTracks';
 import { FeaturedArtists } from '@/sections/FeaturedArtists';
 import { Genres } from '@/sections/Genres';
@@ -12,6 +13,7 @@ export function Home() {
       <Navbar />
       <main className="pt-16">
         <Hero />
+        <FollowingFeed />
         <TrendingTracks />
         <FeaturedArtists />
         <Genres />

@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlayer } from '@/context/PlayerContext';
-import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
 import { getUserById } from '@/data/mockData';
 
@@ -36,7 +35,6 @@ function formatTime(seconds: number): string {
 }
 
 export function AudioPlayer() {
-  const { isAuthenticated } = useAuth();
   const {
     currentTrack,
     isPlaying,
@@ -60,6 +58,7 @@ export function AudioPlayer() {
   } = usePlayer();
 
   const [isLiked, setIsLiked] = useState(false);
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const progress = duration > 0 ? currentTime / duration : 0;
 
   useEffect(() => {
@@ -128,18 +127,28 @@ export function AudioPlayer() {
                 {trackUser?.displayName}
               </Link>
             </div>
-            {isAuthenticated && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="flex-shrink-0"
-                onClick={() => setIsLiked(!isLiked)}
-              >
-                <Heart
-                  className={`w-4 h-4 ${isLiked ? 'fill-orange-500 text-orange-500' : ''}`}
-                />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="flex-shrink-0 hover:bg-orange-500/10 active:scale-90 transition-all duration-200"
+              onClick={() => {
+                const nextLiked = !isLiked;
+                setIsLiked(nextLiked);
+                if (nextLiked) {
+                  setIsLikeAnimating(true);
+                }
+              }}
+              title={isLiked ? "Unlike" : "Like"}
+            >
+              <Heart
+                onAnimationEnd={() => setIsLikeAnimating(false)}
+                className={`w-4 h-4 transition-all duration-300 ease-out ${
+                  isLiked
+                    ? 'fill-orange-500 text-orange-500'
+                    : 'text-muted-foreground hover:text-orange-400'
+                } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
+              />
+            </Button>
           </div>
 
           {/* Controls */}

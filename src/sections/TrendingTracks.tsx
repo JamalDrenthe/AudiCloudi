@@ -9,14 +9,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePlayer } from '@/context/PlayerContext';
-import { useAuth } from '@/context/AuthContext';
 import { getTrendingTracks, getUserById } from '@/data/mockData';
 import type { Track } from '@/types';
 
 function TrackCard({ track, index }: { track: Track; index: number }) {
   const { playTrack, addToQueue, currentTrack, isPlaying } = usePlayer();
-  const { isAuthenticated } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -134,22 +133,30 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
               {track.playsCount.toLocaleString()} plays
             </span>
             <div className="flex items-center gap-1">
-              {isAuthenticated && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsLiked(!isLiked);
-                  }}
-                >
-                  <Heart
-                    className={`w-4 h-4 ${isLiked ? 'fill-orange-500 text-orange-500' : ''}`}
-                  />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-orange-500/10 active:scale-90 transition-all duration-200"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const nextLiked = !isLiked;
+                  setIsLiked(nextLiked);
+                  if (nextLiked) {
+                    setIsLikeAnimating(true);
+                  }
+                }}
+                title={isLiked ? "Unlike" : "Like"}
+              >
+                <Heart
+                  onAnimationEnd={() => setIsLikeAnimating(false)}
+                  className={`w-4 h-4 transition-all duration-300 ease-out ${
+                    isLiked
+                      ? 'fill-orange-500 text-orange-500'
+                      : 'text-muted-foreground hover:text-orange-400'
+                  } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
+                />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
