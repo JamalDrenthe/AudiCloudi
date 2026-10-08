@@ -69,7 +69,7 @@ export function UserProfile() {
   const { playQueue } = usePlayer();
   const [activeTab, setActiveTab] = useState('tracks');
 
-  const user = id ? getUserById(id) : undefined;
+  const user = id ? (currentUser?.id === id ? currentUser : getUserById(id)) : undefined;
   const userTracks = user ? getTracksByUserId(user.id) : [];
   const userPlaylists = user ? mockPlaylists.filter(p => p.userId === user.id) : [];
   const isFollowing = false; // In a real app, this would be checked

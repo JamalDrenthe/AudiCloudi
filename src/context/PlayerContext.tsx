@@ -23,6 +23,7 @@ const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const handleNextTrackRef = useRef<() => void>(() => {});
 
   const [state, setState] = useState<PlayerState>({
     currentTrack: null,
@@ -53,7 +54,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
 
     const handleEnded = () => {
-      handleNextTrack();
+      handleNextTrackRef.current();
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -164,6 +165,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       };
     });
   };
+
+  handleNextTrackRef.current = handleNextTrack;
 
   const nextTrack = () => {
     handleNextTrack();

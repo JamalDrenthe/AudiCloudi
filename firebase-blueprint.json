@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in AudiCloudi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string", "maxLength": 50, "pattern": "^[a-zA-Z0-9_]+$" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 500 },
+        "avatarUrl": { "type": "string", "maxLength": 1000 },
+        "bannerUrl": { "type": "string", "maxLength": 1000 },
+        "role": { "type": "string", "enum": ["user", "moderator", "admin"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "tracksCount": { "type": "number" }
+      },
+      "required": ["id", "email", "username", "displayName", "role"]
+    },
+    "Track": {
+      "title": "Track",
+      "description": "Audio track uploaded to AudiCloudi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "genre": { "type": "string", "maxLength": 50 },
+        "tags": { "type": "array" },
+        "duration": { "type": "number" },
+        "durationFormatted": { "type": "string", "maxLength": 20 },
+        "waveformData": { "type": "array" },
+        "audioUrl": { "type": "string", "maxLength": 1000 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "isPrivate": { "type": "boolean" },
+        "isExplicit": { "type": "boolean" },
+        "license": { "type": "string" },
+        "playsCount": { "type": "number" },
+        "likesCount": { "type": "number" },
+        "repostsCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "audioUrl"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "Track like document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "trackId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "trackId"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment on a track",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "trackId": { "type": "string" },
+        "parentId": { "type": "string" },
+        "content": { "type": "string", "maxLength": 1000 },
+        "likesCount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "trackId", "content"]
+    },
+    "Playlist": {
+      "title": "Playlist",
+      "description": "User playlist",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "isPublic": { "type": "boolean" },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "tracksCount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/tracks/{trackId}": {
+      "schema": "Track",
+      "description": "Audio tracks collection"
+    },
+    "/likes/{likeId}": {
+      "schema": "Like",
+      "description": "Track likes interaction collection"
+    },
+    "/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Track comments collection"
+    },
+    "/playlists/{playlistId}": {
+      "schema": "Playlist",
+      "description": "Playlists collection"
+    }
+  }
+}

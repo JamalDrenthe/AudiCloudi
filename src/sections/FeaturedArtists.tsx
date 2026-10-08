@@ -33,10 +33,10 @@ function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: num
   return (
     <div
       ref={cardRef}
-      className="flex-shrink-0 w-40 opacity-0"
+      className="flex-shrink-0 w-40 opacity-0 group text-center"
       style={{ animationDelay: `${index * 0.05}s` }}
     >
-      <Link to={`/user/${artist.id}`} className="block text-center group">
+      <Link to={`/user/${artist.id}`} className="block">
         <div className="relative mb-4">
           <Avatar className="w-32 h-32 mx-auto ring-4 ring-transparent group-hover:ring-orange-500/30 transition-all duration-300">
             <AvatarImage src={artist.avatarUrl} alt={artist.displayName} />
@@ -49,21 +49,21 @@ function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: num
         <p className="text-sm text-muted-foreground">
           {artist.followersCount.toLocaleString()} followers
         </p>
-        {isAuthenticated && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3 rounded-full w-full"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <UserPlus className="w-4 h-4 mr-1" />
-            Follow
-          </Button>
-        )}
       </Link>
+      {isAuthenticated && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 rounded-full w-full"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <UserPlus className="w-4 h-4 mr-1" />
+          Follow
+        </Button>
+      )}
     </div>
   );
 }

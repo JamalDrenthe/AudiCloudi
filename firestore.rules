@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'js.drenthe@gmail.com'
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email', 'username', 'displayName', 'role']) &&
+        data.id is string &&
+        data.email is string && data.email.size() <= 100 &&
+        data.username is string && data.username.size() <= 50 && data.username.matches('^[a-zA-Z0-9_]+$') &&
+        data.displayName is string && data.displayName.size() <= 100 &&
+        data.role in ['user', 'moderator', 'admin'];
+    }
+
+    function isValidTrack(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'audioUrl']) &&
+        data.id is string &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.title is string && data.title.size() <= 150 &&
+        data.audioUrl is string && data.audioUrl.size() <= 1000;
+    }
+
+    // Admins lookup
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isValidId(userId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId &&
+        isValidUser(incoming()) && incoming().role == 'user';
+      allow update: if isSignedIn() && isValidId(userId) &&
+        (request.auth.uid == userId || isAdmin()) &&
+        isValidUser(incoming()) &&
+        (isAdmin() || incoming().role == existing().role);
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Tracks collection
+    match /tracks/{trackId} {
+      allow get: if isValidId(trackId) &&
+        (!resource.data.isPrivate || (isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin())));
+      allow list: if true;
+      allow create: if isSignedIn() && isValidId(trackId) && isValidTrack(incoming());
+      allow update: if isSignedIn() && isValidId(trackId) &&
+        (resource.data.userId == request.auth.uid || isAdmin()) &&
+        isValidTrack(incoming()) &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(trackId) &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Likes collection
+    match /likes/{likeId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(likeId) &&
+        incoming().userId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(likeId) &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Comments collection
+    match /comments/{commentId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(commentId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().content is string && incoming().content.size() <= 1000;
+      allow update: if isSignedIn() && isValidId(commentId) &&
+        resource.data.userId == request.auth.uid &&
+        incoming().content is string && incoming().content.size() <= 1000 &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(commentId) &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Playlists collection
+    match /playlists/{playlistId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(playlistId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().title is string && incoming().title.size() <= 100;
+      allow update: if isSignedIn() && isValidId(playlistId) &&
+        (resource.data.userId == request.auth.uid || isAdmin()) &&
+        incoming().title is string && incoming().title.size() <= 100 &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(playlistId) &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

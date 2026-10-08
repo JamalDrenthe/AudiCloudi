@@ -1,0 +1,8 @@
+{
+  "name": "AudiCloudi",
+  "description": "AudiCloudi - Modern music community for streaming, discovering, and sharing music.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

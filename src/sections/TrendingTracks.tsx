@@ -63,105 +63,116 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={`/track/${track.id}`}>
-        <div className="bg-card rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
-          {/* Cover Image */}
-          <div className="relative aspect-square overflow-hidden">
+      <div className="bg-card rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
+        {/* Cover Image */}
+        <div className="relative aspect-square overflow-hidden">
+          <Link to={`/track/${track.id}`} className="block w-full h-full" aria-label={track.title}>
             <img
               src={track.coverUrl}
               alt={track.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            {/* Overlay */}
-            <div className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${
+          </Link>
+          {/* Overlay */}
+          <div
+            className={`absolute inset-0 bg-black/40 transition-opacity duration-300 pointer-events-none ${
               isHovered ? 'opacity-100' : 'opacity-0'
-            }`}>
-              {/* Play Button */}
-              <Button
-                size="icon"
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg transform transition-all duration-300 hover:scale-110"
-                onClick={handlePlay}
-              >
-                {isCurrentTrack && isPlaying ? (
-                  <div className="flex gap-0.5">
-                    <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0s' }} />
-                    <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  </div>
-                ) : (
-                  <Play className="w-6 h-6 ml-1" />
-                )}
-              </Button>
-            </div>
-            {/* Explicit Badge */}
-            {track.isExplicit && (
-              <span className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] font-bold bg-zinc-800/80 rounded">
-                E
-              </span>
-            )}
-            {/* Duration */}
-            <span className="absolute bottom-2 right-2 px-2 py-1 text-xs bg-black/60 rounded">
-              {track.durationFormatted}
-            </span>
-          </div>
-
-          {/* Info */}
-          <div className="p-4">
-            <h3 className="font-semibold truncate group-hover:text-orange-500 transition-colors">
-              {track.title}
-            </h3>
-            <Link
-              to={`/user/${track.userId}`}
-              className="text-sm text-muted-foreground hover:text-orange-500 transition-colors block truncate"
-              onClick={(e) => e.stopPropagation()}
+            }`}
+          />
+          {/* Play Button */}
+          <div
+            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <Button
+              size="icon"
+              className="pointer-events-auto w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg transform transition-all duration-300 hover:scale-110"
+              onClick={handlePlay}
             >
-              {artist?.displayName}
+              {isCurrentTrack && isPlaying ? (
+                <div className="flex gap-0.5">
+                  <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0s' }} />
+                  <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.2s' }} />
+                </div>
+              ) : (
+                <Play className="w-6 h-6 ml-1" />
+              )}
+            </Button>
+          </div>
+          {/* Explicit Badge */}
+          {track.isExplicit && (
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] font-bold bg-zinc-800/80 rounded pointer-events-none">
+              E
+            </span>
+          )}
+          {/* Duration */}
+          <span className="absolute bottom-2 right-2 px-2 py-1 text-xs bg-black/60 rounded pointer-events-none">
+            {track.durationFormatted}
+          </span>
+        </div>
+
+        {/* Info */}
+        <div className="p-4">
+          <h3 className="font-semibold truncate">
+            <Link
+              to={`/track/${track.id}`}
+              className="hover:text-orange-500 transition-colors block truncate"
+            >
+              {track.title}
             </Link>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-xs text-muted-foreground">
-                {track.playsCount.toLocaleString()} plays
-              </span>
-              <div className="flex items-center gap-1">
-                {isAuthenticated && (
+          </h3>
+          <Link
+            to={`/user/${track.userId}`}
+            className="text-sm text-muted-foreground hover:text-orange-500 transition-colors block truncate"
+          >
+            {artist?.displayName}
+          </Link>
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-xs text-muted-foreground">
+              {track.playsCount.toLocaleString()} plays
+            </span>
+            <div className="flex items-center gap-1">
+              {isAuthenticated && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsLiked(!isLiked);
+                  }}
+                >
+                  <Heart
+                    className={`w-4 h-4 ${isLiked ? 'fill-orange-500 text-orange-500' : ''}`}
+                  />
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={(e: React.MouseEvent) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsLiked(!isLiked);
-                    }}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Heart
-                      className={`w-4 h-4 ${isLiked ? 'fill-orange-500 text-orange-500' : ''}`}
-                    />
+                    <MoreHorizontal className="w-4 h-4" />
                   </Button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleAddToQueue}>
-                      Add to Queue
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>Add to Playlist</DropdownMenuItem>
-                    <DropdownMenuItem>Share</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleAddToQueue}>
+                    Add to Queue
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>Add to Playlist</DropdownMenuItem>
+                  <DropdownMenuItem>Share</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,9 @@ import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { doc, setDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
+import type { Track } from '@/types';
 
 const genres = [
   'Electronic',
@@ -121,13 +124,46 @@ export function Upload() {
       });
     }, 200);
 
-    // Simulate upload completion
-    setTimeout(() => {
+    // Simulate upload completion and persist to Firestore
+    setTimeout(async () => {
       clearInterval(progressInterval);
       setUploadProgress(100);
+
+      if (user) {
+        const trackId = `track_${Date.now()}`;
+        const newTrack: Track = {
+          id: trackId,
+          userId: user.id,
+          title: formData.title,
+          description: formData.description,
+          genre: formData.genre,
+          tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+          duration: 180,
+          durationFormatted: '3:00',
+          waveformData: Array.from({ length: 40 }, () => Math.floor(Math.random() * 80) + 20),
+          audioUrl: 'https://cdn.freesound.org/previews/612/612608_11861866-lq.mp3',
+          coverUrl: coverImage || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
+          isPrivate: formData.isPrivate,
+          isExplicit: formData.isExplicit,
+          license: formData.license as Track['license'],
+          playsCount: 0,
+          likesCount: 0,
+          repostsCount: 0,
+          commentsCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        try {
+          await setDoc(doc(db, 'tracks', trackId), newTrack);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `tracks/${trackId}`);
+        }
+      }
+
       toast.success('Track uploaded successfully!');
       navigate(`/user/${user?.id}`);
-    }, 4000);
+    }, 2000);
   };
 
   if (!isAuthenticated) {

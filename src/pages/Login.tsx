@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,6 +18,23 @@ export function Login() {
     password: '',
     rememberMe: false,
   });
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const success = await loginWithGoogle();
+      if (success) {
+        toast.success('Welcome back!');
+        navigate('/');
+      } else {
+        toast.error('Google sign in failed');
+      }
+    } catch {
+      toast.error('Google sign in failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +52,7 @@ export function Login() {
       } else {
         toast.error('Invalid email or password');
       }
-    } catch (error) {
+    } catch {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
@@ -143,7 +160,7 @@ export function Login() {
         </div>
 
         {/* Social Login */}
-        <Button variant="outline" className="w-full" disabled={isLoading}>
+        <Button variant="outline" className="w-full" disabled={isLoading} onClick={handleGoogleLogin}>
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path
               fill="currentColor"
