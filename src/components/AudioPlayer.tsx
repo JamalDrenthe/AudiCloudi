@@ -28,6 +28,8 @@ import { usePlayer } from '@/context/PlayerContext';
 import { Link } from 'react-router-dom';
 import { getUserById } from '@/data/mockData';
 import { Waveform } from '@/components/Waveform';
+import { getLocalAudioUrl } from '@/lib/audioStorage';
+import { generateTrackAudio } from '@/lib/audioSynthesizer';
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';
@@ -80,12 +82,24 @@ export function AudioPlayer() {
 
   const trackUser = getUserById(currentTrack.userId);
 
-  const handleDownload = () => {
-    // In a real app, this would trigger the actual download
-    const link = document.createElement('a');
-    link.href = currentTrack.audioUrl;
-    link.download = `${currentTrack.title}.mp3`;
-    link.click();
+  const handleDownload = async () => {
+    try {
+      const localUrl = await getLocalAudioUrl(currentTrack.id);
+      let downloadUrl = localUrl || currentTrack.audioUrl;
+      if (!downloadUrl) {
+        downloadUrl = await generateTrackAudio(currentTrack);
+      }
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${currentTrack.title}.wav`;
+      link.click();
+    } catch {
+      // Fallback
+      const link = document.createElement('a');
+      link.href = currentTrack.audioUrl;
+      link.download = `${currentTrack.title}.mp3`;
+      link.click();
+    }
   };
 
   return (

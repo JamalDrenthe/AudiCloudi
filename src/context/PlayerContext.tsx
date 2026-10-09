@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import type { Track, PlayerState } from '@/types';
-import { getLocalAudioUrl } from '@/lib/audioStorage';
+import { getLocalAudioUrl, getAudioUrlSync } from '@/lib/audioStorage';
+import { generateTrackAudio, getGeneratedTrackAudioSync } from '@/lib/audioSynthesizer';
 
 interface PlayerContextType extends PlayerState {
   playTrack: (track: Track) => void;
@@ -39,76 +40,156 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     repeatMode: 'none',
   });
 
+  const currentLoadedTrackId = useRef<string | null>(null);
+  const loadingTokenRef = useRef<number>(0);
+
   // Initialize audio element
   useEffect(() => {
-    audioRef.current = new Audio();
-    audioRef.current.volume = state.volume;
-
-    const audio = audioRef.current;
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = state.volume;
+    audioRef.current = audio;
 
     const handleTimeUpdate = () => {
       setState(prev => ({ ...prev, currentTime: audio.currentTime }));
     };
 
     const handleLoadedMetadata = () => {
-      setState(prev => ({ ...prev, duration: audio.duration }));
+      if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+        setState(prev => ({ ...prev, duration: audio.duration }));
+      }
     };
 
     const handleEnded = () => {
       handleNextTrackRef.current();
     };
 
+    const handleError = async () => {
+      if (!state.currentTrack) return;
+      try {
+        const fallbackUrl = await generateTrackAudio(state.currentTrack);
+        if (audioRef.current && audioRef.current.src !== fallbackUrl) {
+          audioRef.current.src = fallbackUrl;
+          if (state.isPlaying) {
+            audioRef.current.play().catch(() => {});
+          }
+        }
+      } catch {
+        // Fallback catch
+      }
+    };
+
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
       audio.pause();
+      audio.src = '';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update audio source when track changes
-  useEffect(() => {
-    let isMounted = true;
-    const loadAudioSrc = async () => {
-      if (!audioRef.current || !state.currentTrack) return;
-      const localUrl = await getLocalAudioUrl(state.currentTrack.id);
-      if (!isMounted || !audioRef.current) return;
-      
-      audioRef.current.src = localUrl || state.currentTrack.audioUrl;
-      if (state.isPlaying) {
-        audioRef.current.play().catch(() => {
-          if (isMounted) {
-            setState(prev => ({ ...prev, isPlaying: false }));
-          }
-        });
+  // Resolve best audio source URL for track
+  const resolveAudioUrl = useCallback(async (track: Track): Promise<string> => {
+    try {
+      // 1. Check synchronous in-memory cache first
+      const syncUrl = getAudioUrlSync(track.id);
+      if (syncUrl) return syncUrl;
+
+      // 2. Check local IndexedDB storage (user uploaded file)
+      const localUrl = await getLocalAudioUrl(track.id);
+      if (localUrl) return localUrl;
+
+      // 3. Check if track has a custom valid non-blob and non-sample url
+      const rawUrl = track.audioUrl;
+      if (
+        rawUrl &&
+        !rawUrl.startsWith('blob:') &&
+        !rawUrl.startsWith('local:') &&
+        !rawUrl.includes('soundhelix.com') &&
+        !rawUrl.includes('freesound.org') &&
+        !rawUrl.includes('example.com')
+      ) {
+        return rawUrl;
       }
-    };
 
-    loadAudioSrc();
+      // 4. Generate high quality deterministic studio audio
+      return await generateTrackAudio(track);
+    } catch {
+      return await generateTrackAudio(track);
+    }
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.currentTrack?.id]);
-
-  // Handle play/pause
+  // Coordinated audio lifecycle handler (prevents race conditions)
   useEffect(() => {
-    if (audioRef.current) {
-      if (state.isPlaying) {
-        audioRef.current.play().catch(() => {
-          setState(prev => ({ ...prev, isPlaying: false }));
-        });
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!state.currentTrack) {
+      audio.pause();
+      return;
+    }
+
+    const currentTrack = state.currentTrack;
+    const shouldPlay = state.isPlaying;
+    const token = ++loadingTokenRef.current;
+
+    // When track changes, load its audio source
+    if (currentLoadedTrackId.current !== currentTrack.id) {
+      currentLoadedTrackId.current = currentTrack.id;
+
+      resolveAudioUrl(currentTrack).then((url) => {
+        if (token !== loadingTokenRef.current || !audioRef.current) return;
+
+        if (audioRef.current.src !== url) {
+          audioRef.current.src = url;
+          try {
+            audioRef.current.currentTime = 0;
+          } catch {
+            // Ignore state errors if media isn't ready
+          }
+        }
+
+        if (shouldPlay) {
+          audioRef.current.play().catch(async () => {
+            if (token !== loadingTokenRef.current || !audioRef.current) return;
+            const fallback = await generateTrackAudio(currentTrack);
+            if (audioRef.current.src !== fallback) {
+              audioRef.current.src = fallback;
+              audioRef.current.play().catch(() => {});
+            }
+          });
+        }
+      });
+    } else {
+      // Same track: coordinate play/pause
+      if (shouldPlay) {
+        if (!audio.src || audio.src === '' || audio.src === window.location.href) {
+          resolveAudioUrl(currentTrack).then((url) => {
+            if (token !== loadingTokenRef.current || !audioRef.current) return;
+            audioRef.current.src = url;
+            audioRef.current.play().catch(() => {});
+          });
+        } else {
+          audio.play().catch(async () => {
+            const fallback = await generateTrackAudio(currentTrack);
+            if (audioRef.current && audioRef.current.src !== fallback) {
+              audioRef.current.src = fallback;
+              audioRef.current.play().catch(() => {});
+            }
+          });
+        }
       } else {
-        audioRef.current.pause();
+        audio.pause();
       }
     }
-  }, [state.isPlaying]);
+  }, [state.currentTrack, state.isPlaying, resolveAudioUrl]);
 
   // Handle volume changes
   useEffect(() => {
@@ -118,24 +199,60 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [state.volume, state.isMuted]);
 
   const playTrack = (track: Track) => {
+    const audio = audioRef.current;
+    const syncUrl = getAudioUrlSync(track.id) || getGeneratedTrackAudioSync(track);
+
+    if (audio && syncUrl) {
+      currentLoadedTrackId.current = track.id;
+      if (audio.src !== syncUrl) {
+        audio.src = syncUrl;
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // Ignore
+        }
+      }
+      audio.play().catch(() => {});
+    } else if (audio) {
+      // Unlock audio element within the user gesture
+      audio.play().catch(() => {});
+    }
+
     setState(prev => ({
       ...prev,
       currentTrack: track,
       isPlaying: true,
       currentTime: 0,
+      duration: track.duration || 180,
     }));
   };
 
   const pause = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
     setState(prev => ({ ...prev, isPlaying: false }));
   };
 
   const resume = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {});
+    }
     setState(prev => ({ ...prev, isPlaying: true }));
   };
 
   const togglePlay = () => {
-    setState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
+    setState(prev => {
+      const nextPlaying = !prev.isPlaying;
+      if (audioRef.current) {
+        if (nextPlaying) {
+          audioRef.current.play().catch(() => {});
+        } else {
+          audioRef.current.pause();
+        }
+      }
+      return { ...prev, isPlaying: nextPlaying };
+    });
   };
 
   const seek = (time: number) => {

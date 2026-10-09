@@ -25,16 +25,17 @@ interface TrackContextType {
   getUserTracks: (userId: string) => Track[];
   getTrackById: (trackId: string) => Track | undefined;
   uploadTrack: (
-    data: Omit<
-      Track,
-      | 'id'
-      | 'createdAt'
-      | 'updatedAt'
-      | 'playsCount'
-      | 'likesCount'
-      | 'repostsCount'
-      | 'commentsCount'
-    >
+    data: Partial<Pick<Track, 'id'>> &
+      Omit<
+        Track,
+        | 'id'
+        | 'createdAt'
+        | 'updatedAt'
+        | 'playsCount'
+        | 'likesCount'
+        | 'repostsCount'
+        | 'commentsCount'
+      >
   ) => Promise<Track>;
   deleteTrack: (trackId: string) => Promise<void>;
   isLoadingTracks: boolean;
@@ -121,23 +122,24 @@ export function TrackProvider({ children }: { children: ReactNode }) {
   };
 
   const uploadTrack = async (
-    data: Omit<
-      Track,
-      | 'id'
-      | 'createdAt'
-      | 'updatedAt'
-      | 'playsCount'
-      | 'likesCount'
-      | 'repostsCount'
-      | 'commentsCount'
-    >
+    data: Partial<Pick<Track, 'id'>> &
+      Omit<
+        Track,
+        | 'id'
+        | 'createdAt'
+        | 'updatedAt'
+        | 'playsCount'
+        | 'likesCount'
+        | 'repostsCount'
+        | 'commentsCount'
+      >
   ): Promise<Track> => {
     if (!user) {
       toast.error('Je moet ingelogd zijn om een nummer te uploaden');
       throw new Error('Not authenticated');
     }
 
-    const trackId = `track_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const trackId = data.id || `track_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const effectiveUserId = auth.currentUser?.uid || user.id;
 
     const newTrack: Track = {

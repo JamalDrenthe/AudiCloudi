@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
+import { useTracks } from '@/context/TrackContext';
 import { getTrendingTracks, getUserById } from '@/data/mockData';
 import type { Track } from '@/types';
 
@@ -41,7 +42,7 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
     return () => observer.disconnect();
   }, []);
 
-  const artist = getUserById(track.userId);
+  const artist = track.user || getUserById(track.userId) || { displayName: track.userName || 'Artist' };
   const isCurrentTrack = currentTrack?.id === track.id;
 
   const handlePlay = (e: React.MouseEvent) => {
@@ -193,7 +194,8 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
 }
 
 export function TrendingTracks() {
-  const trendingTracks = getTrendingTracks(8);
+  const { tracks: allTracks } = useTracks();
+  const trendingTracks = allTracks.length > 0 ? allTracks.slice(0, 8) : getTrendingTracks(8);
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8">

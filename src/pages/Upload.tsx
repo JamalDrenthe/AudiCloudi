@@ -18,6 +18,7 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { useAuth } from '@/context/AuthContext';
 import { useTracks } from '@/context/TrackContext';
 import { saveLocalAudioFile } from '@/lib/audioStorage';
+import { generateTrackAudio } from '@/lib/audioSynthesizer';
 import { toast } from 'sonner';
 import type { Track } from '@/types';
 
@@ -26,7 +27,7 @@ const sampleDemoTracks = [
     name: 'Neon Cyber Synth',
     genre: 'electronic',
     duration: 168,
-    url: 'https://cdn.freesound.org/previews/612/612608_11861866-lq.mp3',
+    url: '',
     cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&h=500&fit=crop',
     tags: 'synthwave, electronic, cyberpunk',
   },
@@ -34,7 +35,7 @@ const sampleDemoTracks = [
     name: 'Sunset Lo-Fi Chill',
     genre: 'hip hop',
     duration: 145,
-    url: 'https://cdn.freesound.org/previews/689/689369_11861866-lq.mp3',
+    url: '',
     cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&h=500&fit=crop',
     tags: 'lofi, chill, hiphop',
   },
@@ -42,7 +43,7 @@ const sampleDemoTracks = [
     name: 'Deep Space Ambient',
     genre: 'ambient',
     duration: 210,
-    url: 'https://cdn.freesound.org/previews/415/415444_5121236-lq.mp3',
+    url: '',
     cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
     tags: 'ambient, space, relaxing',
   },
@@ -50,7 +51,7 @@ const sampleDemoTracks = [
     name: 'Summer House Anthem',
     genre: 'pop',
     duration: 195,
-    url: 'https://cdn.freesound.org/previews/563/563836_11861866-lq.mp3',
+    url: '',
     cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=500&fit=crop',
     tags: 'house, summer, dance',
   },
@@ -201,13 +202,15 @@ export function Upload() {
       const secs = Math.floor(dur % 60);
       const durationFormatted = `${mins}:${secs.toString().padStart(2, '0')}`;
 
-      const audioUrl = selectedDemoTrack
-        ? selectedDemoTrack.url
-        : (audioFile
-          ? URL.createObjectURL(audioFile)
-          : 'https://cdn.freesound.org/previews/612/612608_11861866-lq.mp3');
+      const trackId = `track_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+      if (audioFile) {
+        // Save to audio storage immediately so memory cache and IndexedDB are hot
+        await saveLocalAudioFile(trackId, audioFile);
+      }
 
       const createdTrack = await uploadTrack({
+        id: trackId,
         userId: user?.id || 'admin_jamal',
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -216,15 +219,24 @@ export function Upload() {
         duration: dur,
         durationFormatted,
         waveformData: Array.from({ length: 40 }, () => Math.floor(Math.random() * 80) + 20),
-        audioUrl,
+        audioUrl: '',
         coverUrl: coverImage || selectedDemoTrack?.cover || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
         isPrivate: formData.isPrivate,
         isExplicit: formData.isExplicit,
         license: formData.license as Track['license'],
       });
 
-      if (audioFile) {
-        await saveLocalAudioFile(createdTrack.id, audioFile);
+      if (!audioFile) {
+        try {
+          const generatedUrl = await generateTrackAudio(createdTrack);
+          if (generatedUrl) {
+            const res = await fetch(generatedUrl);
+            const blob = await res.blob();
+            await saveLocalAudioFile(createdTrack.id, blob);
+          }
+        } catch {
+          // Fallback to on-demand generation
+        }
       }
 
       clearInterval(progressInterval);

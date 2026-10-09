@@ -33,6 +33,7 @@ import { TrackAnalyticsChart } from '@/components/TrackAnalyticsChart';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { usePlaylist } from '@/context/PlaylistContext';
+import { useTracks } from '@/context/TrackContext';
 import { toast } from 'sonner';
 import {
   collection,
@@ -203,15 +204,31 @@ export function TrackDetail() {
   const { user, isAuthenticated, followUser, unfollowUser, isFollowing } = useAuth();
   const { playTrack, currentTrack, isPlaying, togglePlay, addToQueue } = usePlayer();
   const { openAddToPlaylistModal } = usePlaylist();
+  const { tracks: allTracks, getTrackById: getContextTrack } = useTracks();
   const [isLiked, setIsLiked] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
-  const track = id ? getTrackById(id) : undefined;
-  const trackUser = track ? getUserById(track.userId) : undefined;
-  const relatedTracks = track ? getTracksByUserId(track.userId).filter(t => t.id !== track.id).slice(0, 5) : [];
+  const track = id ? (getContextTrack(id) || allTracks.find(t => t.id === id) || getTrackById(id)) : undefined;
+  const trackUser = track
+    ? (track.user || getUserById(track.userId) || {
+        id: track.userId,
+        email: track.userEmail || '',
+        username: track.userName?.toLowerCase().replace(/\s+/g, '') || 'artist',
+        displayName: track.userName || 'Artist',
+        bio: 'Muzikant op AudiCloudi',
+        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=400&fit=crop',
+        role: 'user',
+        createdAt: track.createdAt,
+        updatedAt: track.updatedAt,
+        followersCount: 0,
+        followingCount: 0,
+        tracksCount: 1,
+      })
+    : undefined;
+  const relatedTracks = track ? (getTracksByUserId(track.userId).filter(t => t.id !== track.id).length > 0 ? getTracksByUserId(track.userId).filter(t => t.id !== track.id).slice(0, 5) : allTracks.filter(t => t.id !== track.id).slice(0, 5)) : [];
   const isCurrentTrack = currentTrack?.id === track?.id;
 
   const [comments, setComments] = useState<Comment[]>(() => {
