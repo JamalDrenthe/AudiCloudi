@@ -28,6 +28,8 @@
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
         "title": { "type": "string", "maxLength": 150 },
         "description": { "type": "string", "maxLength": 2000 },
         "genre": { "type": "string", "maxLength": 50 },

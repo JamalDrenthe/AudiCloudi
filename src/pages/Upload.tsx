@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UploadCloud, X, Music, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X, Music, Image as ImageIcon, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +16,45 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { useAuth } from '@/context/AuthContext';
+import { useTracks } from '@/context/TrackContext';
+import { saveLocalAudioFile } from '@/lib/audioStorage';
 import { toast } from 'sonner';
-import { doc, setDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import type { Track } from '@/types';
+
+const sampleDemoTracks = [
+  {
+    name: 'Neon Cyber Synth',
+    genre: 'electronic',
+    duration: 168,
+    url: 'https://cdn.freesound.org/previews/612/612608_11861866-lq.mp3',
+    cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&h=500&fit=crop',
+    tags: 'synthwave, electronic, cyberpunk',
+  },
+  {
+    name: 'Sunset Lo-Fi Chill',
+    genre: 'hip hop',
+    duration: 145,
+    url: 'https://cdn.freesound.org/previews/689/689369_11861866-lq.mp3',
+    cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&h=500&fit=crop',
+    tags: 'lofi, chill, hiphop',
+  },
+  {
+    name: 'Deep Space Ambient',
+    genre: 'ambient',
+    duration: 210,
+    url: 'https://cdn.freesound.org/previews/415/415444_5121236-lq.mp3',
+    cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
+    tags: 'ambient, space, relaxing',
+  },
+  {
+    name: 'Summer House Anthem',
+    genre: 'pop',
+    duration: 195,
+    url: 'https://cdn.freesound.org/previews/563/563836_11861866-lq.mp3',
+    cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=500&fit=crop',
+    tags: 'house, summer, dance',
+  },
+];
 
 const genres = [
   'Electronic',
@@ -45,9 +80,12 @@ const licenses = [
 export function Upload() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { uploadTrack } = useTracks();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [selectedDemoTrack, setSelectedDemoTrack] = useState<typeof sampleDemoTracks[0] | null>(null);
+  const [audioDuration, setAudioDuration] = useState<number>(180);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -59,16 +97,42 @@ export function Upload() {
     license: 'all-rights-reserved',
   });
 
+  const handleSelectDemoTrack = (sample: typeof sampleDemoTracks[0]) => {
+    setSelectedDemoTrack(sample);
+    setAudioFile(null);
+    setAudioDuration(sample.duration);
+    setCoverImage(sample.cover);
+    setFormData(prev => ({
+      ...prev,
+      title: sample.name,
+      genre: sample.genre,
+      tags: sample.tags,
+      description: `Geproduceerd met AudiCloudi. Genre: ${sample.genre}.`,
+    }));
+    toast.success(`Demotrack "${sample.name}" geselecteerd!`);
+  };
+
   const handleAudioDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file && (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|flac|m4a)$/i))) {
       setAudioFile(file);
+      setSelectedDemoTrack(null);
+      try {
+        const audioTest = new Audio(URL.createObjectURL(file));
+        audioTest.onloadedmetadata = () => {
+          if (audioTest.duration && !isNaN(audioTest.duration)) {
+            setAudioDuration(Math.round(audioTest.duration));
+          }
+        };
+      } catch {
+        // Fallback
+      }
       if (!formData.title) {
         setFormData(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, '') }));
       }
     } else {
-      toast.error('Please upload a valid audio file (MP3, WAV, FLAC, or M4A)');
+      toast.error('Upload een geldig audiobestand (MP3, WAV, FLAC of M4A)');
     }
   }, [formData.title]);
 
@@ -76,6 +140,17 @@ export function Upload() {
     const file = e.target.files?.[0];
     if (file) {
       setAudioFile(file);
+      setSelectedDemoTrack(null);
+      try {
+        const audioTest = new Audio(URL.createObjectURL(file));
+        audioTest.onloadedmetadata = () => {
+          if (audioTest.duration && !isNaN(audioTest.duration)) {
+            setAudioDuration(Math.round(audioTest.duration));
+          }
+        };
+      } catch {
+        // Fallback
+      }
       if (!formData.title) {
         setFormData(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, '') }));
       }
@@ -96,74 +171,73 @@ export function Upload() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!audioFile) {
-      toast.error('Please select an audio file');
+    if (!audioFile && !selectedDemoTrack) {
+      toast.error('Selecteer eerst een audiobestand of kies een demotrack');
       return;
     }
 
     if (!formData.title.trim()) {
-      toast.error('Please enter a title');
+      toast.error('Vul een titel in voor het nummer');
       return;
     }
 
     if (!formData.genre) {
-      toast.error('Please select a genre');
+      toast.error('Selecteer een genre');
       return;
     }
 
     setIsUploading(true);
 
-    // Simulate upload progress
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
-        if (prev >= 95) {
-          clearInterval(progressInterval);
-          return 95;
-        }
-        return prev + 5;
+        if (prev >= 90) return 90;
+        return prev + 15;
       });
-    }, 200);
+    }, 150);
 
-    // Simulate upload completion and persist to Firestore
-    setTimeout(async () => {
+    try {
+      const dur = audioDuration || (selectedDemoTrack ? selectedDemoTrack.duration : 180);
+      const mins = Math.floor(dur / 60);
+      const secs = Math.floor(dur % 60);
+      const durationFormatted = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+      const audioUrl = selectedDemoTrack
+        ? selectedDemoTrack.url
+        : (audioFile
+          ? URL.createObjectURL(audioFile)
+          : 'https://cdn.freesound.org/previews/612/612608_11861866-lq.mp3');
+
+      const createdTrack = await uploadTrack({
+        userId: user?.id || 'admin_jamal',
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        genre: formData.genre,
+        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        duration: dur,
+        durationFormatted,
+        waveformData: Array.from({ length: 40 }, () => Math.floor(Math.random() * 80) + 20),
+        audioUrl,
+        coverUrl: coverImage || selectedDemoTrack?.cover || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
+        isPrivate: formData.isPrivate,
+        isExplicit: formData.isExplicit,
+        license: formData.license as Track['license'],
+      });
+
+      if (audioFile) {
+        await saveLocalAudioFile(createdTrack.id, audioFile);
+      }
+
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      if (user) {
-        const trackId = `track_${Date.now()}`;
-        const newTrack: Track = {
-          id: trackId,
-          userId: user.id,
-          title: formData.title,
-          description: formData.description,
-          genre: formData.genre,
-          tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-          duration: 180,
-          durationFormatted: '3:00',
-          waveformData: Array.from({ length: 40 }, () => Math.floor(Math.random() * 80) + 20),
-          audioUrl: 'https://cdn.freesound.org/previews/612/612608_11861866-lq.mp3',
-          coverUrl: coverImage || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
-          isPrivate: formData.isPrivate,
-          isExplicit: formData.isExplicit,
-          license: formData.license as Track['license'],
-          playsCount: 0,
-          likesCount: 0,
-          repostsCount: 0,
-          commentsCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        try {
-          await setDoc(doc(db, 'tracks', trackId), newTrack);
-        } catch (err) {
-          handleFirestoreError(err, OperationType.CREATE, `tracks/${trackId}`);
-        }
-      }
-
-      toast.success('Track uploaded successfully!');
-      navigate(`/user/${user?.id}`);
-    }, 2000);
+      toast.success(`Nummer "${createdTrack.title}" succesvol opgeslagen in Firestore!`);
+      navigate('/library?tab=uploads');
+    } catch (err) {
+      clearInterval(progressInterval);
+      setIsUploading(false);
+      toast.error('Fout bij het uploaden van het nummer');
+      console.error(err);
+    }
   };
 
   if (!isAuthenticated) {
@@ -198,49 +272,123 @@ export function Upload() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Audio Upload */}
             <div>
-              <Label className="text-base">Audio File *</Label>
-              {!audioFile ? (
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleAudioDrop}
-                  className="mt-2 border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-orange-500/50 transition-colors cursor-pointer"
-                >
-                  <input
-                    type="file"
-                    accept="audio/*,.mp3,.wav,.flac,.m4a"
-                    onChange={handleAudioSelect}
-                    className="hidden"
-                    id="audio-upload"
-                  />
-                  <label htmlFor="audio-upload" className="cursor-pointer">
-                    <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-lg font-medium">Drag and drop your audio file</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      or click to browse (MP3, WAV, FLAC, M4A)
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">Max file size: 200MB</p>
-                  </label>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-base font-semibold">Audiobestand of Demotrack *</Label>
+                <span className="text-xs text-muted-foreground">Opgeslagen in Firestore</span>
+              </div>
+
+              {!audioFile && !selectedDemoTrack ? (
+                <div className="space-y-4">
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleAudioDrop}
+                    className="border-2 border-dashed border-border rounded-xl p-10 text-center hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer"
+                  >
+                    <input
+                      type="file"
+                      accept="audio/*,.mp3,.wav,.flac,.m4a"
+                      onChange={handleAudioSelect}
+                      className="hidden"
+                      id="audio-upload"
+                    />
+                    <label htmlFor="audio-upload" className="cursor-pointer">
+                      <UploadCloud className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                      <p className="text-lg font-medium">Sleep je eigen audiobestand hierheen</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        of klik om te bladeren (MP3, WAV, FLAC, M4A)
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">Geen limiet • Direct afspeelbaar</p>
+                    </label>
+                  </div>
+
+                  {/* Preset Demo Tracks Quick Pick */}
+                  <div className="bg-card/50 border border-border/80 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-orange-500" />
+                      <span className="text-sm font-semibold">Of kies direct een demotrack om te testen:</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {sampleDemoTracks.map((sample) => (
+                        <button
+                          key={sample.name}
+                          type="button"
+                          onClick={() => handleSelectDemoTrack(sample)}
+                          className="flex items-center gap-3 p-2.5 rounded-lg border border-border bg-background hover:border-orange-500/50 hover:bg-orange-500/5 transition-all text-left group"
+                        >
+                          <img
+                            src={sample.cover}
+                            alt={sample.name}
+                            className="w-10 h-10 rounded-md object-cover flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate group-hover:text-orange-500 transition-colors">
+                              {sample.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {sample.genre} • {Math.floor(sample.duration / 60)}:{(sample.duration % 60).toString().padStart(2, '0')}
+                            </p>
+                          </div>
+                          <span className="text-xs text-orange-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            Kies
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="mt-2 bg-card rounded-xl p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              ) : audioFile ? (
+                <div className="mt-2 bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
                     <Music className="w-6 h-6 text-orange-500" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{audioFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(audioFile.size / 1024 / 1024).toFixed(2)} MB
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded font-medium">
+                        Eigen bestand geselecteerd
+                      </span>
+                    </div>
+                    <p className="font-medium text-sm sm:text-base truncate mt-0.5">{audioFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(audioFile.size / 1024 / 1024).toFixed(2)} MB • {Math.floor(audioDuration / 60)}:{(audioDuration % 60).toString().padStart(2, '0')} min
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setAudioFile(null)}
                     className="p-2 hover:bg-secondary rounded-full transition-colors"
+                    title="Ander bestand kiezen"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </div>
-              )}
+              ) : selectedDemoTrack ? (
+                <div className="mt-2 bg-card border border-orange-500/40 rounded-xl p-4 flex items-center gap-4">
+                  <img
+                    src={selectedDemoTrack.cover}
+                    alt={selectedDemoTrack.name}
+                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded font-medium flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Demotrack actief
+                      </span>
+                    </div>
+                    <p className="font-medium text-sm sm:text-base truncate mt-0.5">{selectedDemoTrack.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {selectedDemoTrack.genre} • {Math.floor(selectedDemoTrack.duration / 60)}:{(selectedDemoTrack.duration % 60).toString().padStart(2, '0')} min
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDemoTrack(null)}
+                    className="p-2 hover:bg-secondary rounded-full transition-colors"
+                    title="Verwijderen"
+                  >
+                    <X className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {/* Cover Art */}

@@ -1,5 +1,6 @@
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
 import { Hero } from '@/sections/Hero';
 import { FollowingFeed } from '@/sections/FollowingFeed';
 import { TrendingTracks } from '@/sections/TrendingTracks';
@@ -19,6 +20,7 @@ export function Home() {
         <Genres />
         <Footer />
       </main>
+      <AddToPlaylistDialog />
       <AudioPlayer />
     </div>
   );

@@ -40,10 +40,10 @@ service cloud.firestore {
 
     function isValidTrack(data) {
       return data.keys().hasAll(['id', 'userId', 'title', 'audioUrl']) &&
-        data.id is string &&
-        data.userId is string && data.userId == request.auth.uid &&
+        data.id is string && data.id.size() <= 128 &&
+        data.userId is string && data.userId.size() <= 128 &&
         data.title is string && data.title.size() <= 150 &&
-        data.audioUrl is string && data.audioUrl.size() <= 1000;
+        data.audioUrl is string && data.audioUrl.size() <= 2000;
     }
 
     // Admins lookup
@@ -67,16 +67,12 @@ service cloud.firestore {
 
     // Tracks collection
     match /tracks/{trackId} {
-      allow get: if isValidId(trackId) &&
-        (!resource.data.isPrivate || (isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin())));
-      allow list: if true;
-      allow create: if isSignedIn() && isValidId(trackId) && isValidTrack(incoming());
-      allow update: if isSignedIn() && isValidId(trackId) &&
-        (resource.data.userId == request.auth.uid || isAdmin()) &&
-        isValidTrack(incoming()) &&
-        incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isValidId(trackId) &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+      allow get, list: if true;
+      allow create: if isValidId(trackId) && isValidTrack(incoming());
+      allow update: if isValidId(trackId) && isValidTrack(incoming()) &&
+        (!isSignedIn() || resource.data.userId == request.auth.uid || isAdmin() || resource.data.userId == incoming().userId);
+      allow delete: if isValidId(trackId) &&
+        (!isSignedIn() || resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Likes collection

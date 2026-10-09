@@ -9,11 +9,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePlayer } from '@/context/PlayerContext';
+import { usePlaylist } from '@/context/PlaylistContext';
 import { getTrendingTracks, getUserById } from '@/data/mockData';
 import type { Track } from '@/types';
 
 function TrackCard({ track, index }: { track: Track; index: number }) {
   const { playTrack, addToQueue, currentTrack, isPlaying } = usePlayer();
+  const { openAddToPlaylistModal } = usePlaylist();
   const [isLiked, setIsLiked] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -172,8 +174,14 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
                   <DropdownMenuItem onClick={handleAddToQueue}>
                     Add to Queue
                   </DropdownMenuItem>
-                  <DropdownMenuItem>Add to Playlist</DropdownMenuItem>
-                  <DropdownMenuItem>Share</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)}>
+                    Toevoegen aan afspeellijst
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/track/${track.id}`);
+                  }}>
+                    Share
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

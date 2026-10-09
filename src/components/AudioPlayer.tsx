@@ -12,6 +12,7 @@ import {
   ListMusic,
   Heart,
   Download,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -26,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlayer } from '@/context/PlayerContext';
 import { Link } from 'react-router-dom';
 import { getUserById } from '@/data/mockData';
+import { Waveform } from '@/components/Waveform';
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';
@@ -59,6 +61,7 @@ export function AudioPlayer() {
 
   const [isLiked, setIsLiked] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [showExpandedWaveform, setShowExpandedWaveform] = useState(false);
   const progress = duration > 0 ? currentTime / duration : 0;
 
   useEffect(() => {
@@ -104,6 +107,31 @@ export function AudioPlayer() {
         {/* Hover preview */}
         <div className="absolute bottom-full left-0 right-0 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
+
+      {/* Expanded Studio Waveform Visualizer */}
+      {showExpandedWaveform && (
+        <div className="px-4 sm:px-6 lg:px-8 py-3 bg-card/95 border-b border-border backdrop-blur">
+          <div className="max-w-7xl mx-auto flex items-center gap-4">
+            <span className="text-xs font-mono text-muted-foreground w-12 text-right">
+              {formatTime(currentTime)}
+            </span>
+            <div className="flex-1">
+              <Waveform
+                track={currentTrack}
+                currentTime={currentTime}
+                duration={duration}
+                isPlaying={isPlaying}
+                onSeek={seek}
+                variant="hero"
+                className="h-16"
+              />
+            </div>
+            <span className="text-xs font-mono text-muted-foreground w-12">
+              {formatTime(duration)}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="h-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between gap-4">
@@ -196,10 +224,15 @@ export function AudioPlayer() {
               <span className="text-xs text-muted-foreground w-10 text-right">
                 {formatTime(currentTime)}
               </span>
-              <div className="flex-1 h-1 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-orange-500 transition-all"
-                  style={{ width: `${progress * 100}%` }}
+              <div className="flex-1 px-1">
+                <Waveform
+                  track={currentTrack}
+                  currentTime={currentTime}
+                  duration={duration}
+                  isPlaying={isPlaying}
+                  onSeek={seek}
+                  variant="player"
+                  className="h-6"
                 />
               </div>
               <span className="text-xs text-muted-foreground w-10">
@@ -210,6 +243,15 @@ export function AudioPlayer() {
 
           {/* Volume & Queue */}
           <div className="flex items-center gap-2 flex-1 justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 ${showExpandedWaveform ? 'text-orange-500 bg-orange-500/10' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setShowExpandedWaveform((prev) => !prev)}
+              title={showExpandedWaveform ? "Verberg visualizer" : "Toon visualizer"}
+            >
+              <Activity className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleMute}>
               {isMuted || volume === 0 ? (
                 <VolumeX className="w-4 h-4" />

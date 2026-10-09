@@ -26,6 +26,8 @@ export interface AuthState {
 export interface Track {
   id: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
   title: string;
   description: string;
   genre: string;
@@ -58,6 +60,7 @@ export interface Playlist {
   isPublic: boolean;
   coverUrl: string;
   tracksCount: number;
+  trackIds?: string[];
   createdAt: string;
   updatedAt: string;
   user?: User;

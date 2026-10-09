@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
 import type { Track, PlayerState } from '@/types';
+import { getLocalAudioUrl } from '@/lib/audioStorage';
 
 interface PlayerContextType extends PlayerState {
   playTrack: (track: Track) => void;
@@ -67,18 +68,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', handleEnded);
       audio.pause();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update audio source when track changes
   useEffect(() => {
-    if (audioRef.current && state.currentTrack) {
-      audioRef.current.src = state.currentTrack.audioUrl;
+    let isMounted = true;
+    const loadAudioSrc = async () => {
+      if (!audioRef.current || !state.currentTrack) return;
+      const localUrl = await getLocalAudioUrl(state.currentTrack.id);
+      if (!isMounted || !audioRef.current) return;
+      
+      audioRef.current.src = localUrl || state.currentTrack.audioUrl;
       if (state.isPlaying) {
         audioRef.current.play().catch(() => {
-          setState(prev => ({ ...prev, isPlaying: false }));
+          if (isMounted) {
+            setState(prev => ({ ...prev, isPlaying: false }));
+          }
         });
       }
-    }
+    };
+
+    loadAudioSrc();
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentTrack?.id]);
 
   // Handle play/pause

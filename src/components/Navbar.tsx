@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Upload, Menu, X, User, Settings, LogOut, Bell } from 'lucide-react';
+import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { mockNotifications } from '@/data/mockData';
+import { addRecentSearch } from '@/lib/searchHistory';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -25,7 +26,8 @@ export function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      addRecentSearch(searchQuery.trim(), user?.id);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
   };
@@ -115,6 +117,12 @@ export function Navbar() {
                       </div>
                     </div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/library?tab=uploads">
+                        <ListMusic className="mr-2 h-4 w-4" />
+                        My Library
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to={`/user/${user?.id}`}>
                         <User className="mr-2 h-4 w-4" />

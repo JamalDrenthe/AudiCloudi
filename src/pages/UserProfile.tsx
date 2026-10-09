@@ -14,8 +14,9 @@ import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { useAuth } from '@/context/AuthContext';
 import { usePlayer } from '@/context/PlayerContext';
+import { usePlaylist } from '@/context/PlaylistContext';
 import { toast } from 'sonner';
-import { getUserById, getTracksByUserId, mockPlaylists } from '@/data/mockData';
+import { getUserById, getTracksByUserId } from '@/data/mockData';
 import type { Track } from '@/types';
 
 function TrackRow({ track, index }: { track: Track; index: number }) {
@@ -68,11 +69,12 @@ export function UserProfile() {
   const { id } = useParams<{ id: string }>();
   const { user: currentUser, isAuthenticated, followUser, unfollowUser, isFollowing: checkIsFollowing } = useAuth();
   const { playQueue } = usePlayer();
+  const { playlists } = usePlaylist();
   const [activeTab, setActiveTab] = useState('tracks');
 
   const user = id ? (currentUser?.id === id ? currentUser : getUserById(id)) : undefined;
   const userTracks = user ? getTracksByUserId(user.id) : [];
-  const userPlaylists = user ? mockPlaylists.filter(p => p.userId === user.id) : [];
+  const userPlaylists = user ? playlists.filter(p => p.userId === user.id) : [];
   const isFollowing = user ? checkIsFollowing(user.id) : false;
   const isOwnProfile = currentUser?.id === user?.id;
 

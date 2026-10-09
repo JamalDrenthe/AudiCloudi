@@ -28,8 +28,11 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
+import { TrackAnalyticsChart } from '@/components/TrackAnalyticsChart';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
+import { usePlaylist } from '@/context/PlaylistContext';
 import { toast } from 'sonner';
 import {
   collection,
@@ -199,6 +202,7 @@ export function TrackDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated, followUser, unfollowUser, isFollowing } = useAuth();
   const { playTrack, currentTrack, isPlaying, togglePlay, addToQueue } = usePlayer();
+  const { openAddToPlaylistModal } = usePlaylist();
   const [isLiked, setIsLiked] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
@@ -482,8 +486,13 @@ export function TrackDetail() {
                       <DropdownMenuItem onClick={() => addToQueue(track)}>
                         Add to Queue
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Add to Playlist</DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)}>
+                        Toevoegen aan afspeellijst
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        toast.success('Link gekopieerd!');
+                      }}>
                         <Share2 className="w-4 h-4 mr-2" />
                         Share
                       </DropdownMenuItem>
@@ -544,6 +553,9 @@ export function TrackDetail() {
                   {track.license === 'public-domain' && 'Public Domain'}
                 </p>
               </div>
+
+              {/* Data Visualization: 30-Day Plays Analytics */}
+              <TrackAnalyticsChart track={track} />
 
               <Separator />
 
@@ -711,6 +723,7 @@ export function TrackDetail() {
           </div>
         </div>
       </main>
+      <AddToPlaylistDialog />
       <AudioPlayer />
     </div>
   );
