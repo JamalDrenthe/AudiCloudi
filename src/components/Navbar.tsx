@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic } from 'lucide-react';
+import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic, Coins, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,7 +16,7 @@ import { mockNotifications } from '@/data/mockData';
 import { addRecentSearch } from '@/lib/searchHistory';
 
 export function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, credits, plan } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -68,6 +68,9 @@ export function Navbar() {
             <Button variant="ghost" asChild>
               <Link to="/library">Library</Link>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/pricing">Prijzen</Link>
+            </Button>
             {isAuthenticated && (
               <Button variant="ghost" asChild>
                 <Link to="/upload">
@@ -82,6 +85,17 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
+                {/* Credits Balance Pill */}
+                <Link
+                  to="/pricing"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs font-semibold transition-all hover:scale-105"
+                  title="Klik om je credits te beheren of op te waarderen"
+                >
+                  <Coins className="w-3.5 h-3.5" />
+                  <span>{(credits || 0).toLocaleString()}</span>
+                  <span className="hidden sm:inline text-orange-400/80 font-normal">credits</span>
+                </Link>
+
                 {/* Notifications */}
                 <Button
                   variant="ghost"
@@ -116,11 +130,24 @@ export function Navbar() {
                         <p className="text-xs text-muted-foreground">@{user?.username}</p>
                       </div>
                     </div>
+                    <div className="px-2 py-1.5 bg-secondary/50 rounded-md mx-2 my-1 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground capitalize">Plan: <strong className="text-foreground">{plan || 'Artiest'}</strong></span>
+                      <span className="font-mono text-orange-400 font-semibold flex items-center gap-1">
+                        <Coins className="w-3 h-3" />
+                        {(credits || 0).toLocaleString()}
+                      </span>
+                    </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/library?tab=uploads">
                         <ListMusic className="mr-2 h-4 w-4" />
                         My Library
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/pricing">
+                        <CreditCard className="mr-2 h-4 w-4 text-orange-400" />
+                        Abonnement & Credits
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -197,6 +224,9 @@ export function Navbar() {
               </Button>
               <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link to="/library">Library</Link>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" asChild>
+                <Link to="/pricing">Prijzen & Credits</Link>
               </Button>
               {isAuthenticated && (
                 <Button variant="ghost" className="w-full justify-start" asChild>

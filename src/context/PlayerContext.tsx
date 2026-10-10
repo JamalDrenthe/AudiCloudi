@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import type { Track, PlayerState } from '@/types';
 import { getLocalAudioUrl, getAudioUrlSync } from '@/lib/audioStorage';
-import { generateTrackAudio, getGeneratedTrackAudioSync } from '@/lib/audioSynthesizer';
+import { generateTrackAudio } from '@/lib/audioSynthesizer';
 
 interface PlayerContextType extends PlayerState {
   playTrack: (track: Track) => void;
@@ -98,28 +98,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Resolve best audio source URL for track
   const resolveAudioUrl = useCallback(async (track: Track): Promise<string> => {
     try {
-      // 1. Check synchronous in-memory cache first
+      // 1. Check synchronous in-memory cache first (instant access for uploaded track)
       const syncUrl = getAudioUrlSync(track.id);
       if (syncUrl) return syncUrl;
 
-      // 2. Check local IndexedDB storage (user uploaded file)
+      // 2. Check local IndexedDB storage (user uploaded audio file)
       const localUrl = await getLocalAudioUrl(track.id);
       if (localUrl) return localUrl;
 
-      // 3. Check if track has a custom valid non-blob and non-sample url
+      // 3. Check track.audioUrl if present and valid (including blob: and data: urls)
       const rawUrl = track.audioUrl;
-      if (
-        rawUrl &&
-        !rawUrl.startsWith('blob:') &&
-        !rawUrl.startsWith('local:') &&
-        !rawUrl.includes('soundhelix.com') &&
-        !rawUrl.includes('freesound.org') &&
-        !rawUrl.includes('example.com')
-      ) {
+      if (rawUrl && rawUrl.trim() !== '') {
         return rawUrl;
       }
 
-      // 4. Generate high quality deterministic studio audio
+      // 4. Generate deterministic studio audio only as last resort
       return await generateTrackAudio(track);
     } catch {
       return await generateTrackAudio(track);
@@ -143,6 +136,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // When track changes, load its audio source
     if (currentLoadedTrackId.current !== currentTrack.id) {
       currentLoadedTrackId.current = currentTrack.id;
+
+      // Stop previous track immediately so it cannot leak
+      audio.pause();
 
       resolveAudioUrl(currentTrack).then((url) => {
         if (token !== loadingTokenRef.current || !audioRef.current) return;
@@ -200,10 +196,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const playTrack = (track: Track) => {
     const audio = audioRef.current;
-    const syncUrl = getAudioUrlSync(track.id) || getGeneratedTrackAudioSync(track);
+    
+    // Immediately stop old audio to prevent playing a different track
+    if (audio) {
+      audio.pause();
+    }
+
+    currentLoadedTrackId.current = track.id;
+
+    // Check synchronous in-memory audio URL first
+    const syncUrl = getAudioUrlSync(track.id) || (track.audioUrl && track.audioUrl.trim() !== '' ? track.audioUrl : null);
 
     if (audio && syncUrl) {
-      currentLoadedTrackId.current = track.id;
       if (audio.src !== syncUrl) {
         audio.src = syncUrl;
         try {
@@ -214,8 +218,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       audio.play().catch(() => {});
     } else if (audio) {
-      // Unlock audio element within the user gesture
-      audio.play().catch(() => {});
+      // Clear src to ensure old audio never plays while resolving
+      audio.src = '';
+      resolveAudioUrl(track).then((resolvedUrl) => {
+        if (!audioRef.current || currentLoadedTrackId.current !== track.id) return;
+        audioRef.current.src = resolvedUrl;
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      });
     }
 
     setState(prev => ({

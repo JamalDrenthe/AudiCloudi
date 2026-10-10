@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { usePlaylist } from '@/context/PlaylistContext';
 import { useAuth } from '@/context/AuthContext';
 import { getUserById } from '@/data/mockData';
+import { TrackCover } from '@/components/TrackCover';
 
 export function AddToPlaylistDialog() {
   const { isAuthenticated } = useAuth();
@@ -72,11 +73,9 @@ export function AddToPlaylistDialog() {
 
         {/* Selected Track Preview */}
         <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/60 mb-2">
-          <img
-            src={selectedTrackForPlaylist.coverUrl}
-            alt={selectedTrackForPlaylist.title}
-            className="w-12 h-12 rounded-lg object-cover"
-          />
+          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
+            <TrackCover track={selectedTrackForPlaylist} />
+          </div>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate">{selectedTrackForPlaylist.title}</p>
             <p className="text-xs text-muted-foreground truncate">{trackArtist?.displayName}</p>
@@ -111,11 +110,9 @@ export function AddToPlaylistDialog() {
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <img
-                          src={pl.coverUrl}
-                          alt={pl.title}
-                          className="w-10 h-10 rounded-md object-cover shrink-0"
-                        />
+                        <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-muted">
+                          <TrackCover playlist={pl} />
+                        </div>
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{pl.title}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1.5">

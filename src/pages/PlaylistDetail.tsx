@@ -26,6 +26,7 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
+import { TrackCover } from '@/components/TrackCover';
 import { usePlaylist } from '@/context/PlaylistContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
@@ -126,10 +127,10 @@ export function PlaylistDetail() {
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
               {/* Cover Artwork */}
               <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl shrink-0 border border-border/50 bg-muted">
-                <img
-                  src={playlist.coverUrl}
-                  alt={playlist.title}
+                <TrackCover
+                  playlist={playlist}
                   className="w-full h-full object-cover"
+                  showBadge
                 />
               </div>
 
@@ -137,7 +138,7 @@ export function PlaylistDetail() {
               <div className="flex-1 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
                   <span className="text-xs font-semibold tracking-wider uppercase text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-md">
-                    Afspeellijst
+                    {playlist.type === 'album' ? 'Album' : 'Afspeellijst'}
                   </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     {playlist.isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
@@ -267,11 +268,9 @@ export function PlaylistDetail() {
 
                     {/* Track Artwork & Title */}
                     <div className="col-span-6 sm:col-span-7 flex items-center gap-3 min-w-0 pr-2">
-                      <img
-                        src={track.coverUrl}
-                        alt={track.title}
-                        className="w-10 h-10 rounded-lg object-cover shrink-0"
-                      />
+                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-muted">
+                        <TrackCover track={track} />
+                      </div>
                       <div className="min-w-0">
                         <Link
                           to={`/track/${track.id}`}

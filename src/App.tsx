@@ -14,6 +14,7 @@ import { Upload } from '@/pages/Upload';
 import { Search } from '@/pages/Search';
 import { Library } from '@/pages/Library';
 import { Admin } from '@/pages/Admin';
+import { Pricing } from '@/pages/Pricing';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/library" element={<Library />} />
+                <Route path="/pricing" element={<Pricing />} />
                 <Route path="/admin" element={<Admin />} />
                 {/* Catch all - redirect to home */}
                 <Route path="*" element={<Home />} />

@@ -23,11 +23,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlayer } from '@/context/PlayerContext';
 import { Link } from 'react-router-dom';
 import { getUserById } from '@/data/mockData';
 import { Waveform } from '@/components/Waveform';
+import { TrackCover } from '@/components/TrackCover';
 import { getLocalAudioUrl } from '@/lib/audioStorage';
 import { generateTrackAudio } from '@/lib/audioSynthesizer';
 
@@ -151,10 +151,9 @@ export function AudioPlayer() {
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between gap-4">
           {/* Track Info */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Avatar className="h-12 w-12 rounded-lg flex-shrink-0">
-              <AvatarImage src={currentTrack.coverUrl} alt={currentTrack.title} />
-              <AvatarFallback>{currentTrack.title[0]}</AvatarFallback>
-            </Avatar>
+            <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-black/40">
+              <TrackCover track={currentTrack} />
+            </div>
             <div className="min-w-0">
               <Link
                 to={`/track/${currentTrack.id}`}
@@ -315,10 +314,9 @@ export function AudioPlayer() {
                             index === queueIndex ? 'bg-orange-500/10' : 'hover:bg-secondary'
                           }`}
                         >
-                          <Avatar className="h-10 w-10 rounded">
-                            <AvatarImage src={track.coverUrl} alt={track.title} />
-                            <AvatarFallback>{track.title[0]}</AvatarFallback>
-                          </Avatar>
+                          <div className="h-10 w-10 rounded overflow-hidden flex-shrink-0 border border-white/10 bg-black/40">
+                            <TrackCover track={track} />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-sm font-medium truncate ${
                               index === queueIndex ? 'text-orange-500' : ''

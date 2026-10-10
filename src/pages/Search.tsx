@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { TrackCover } from '@/components/TrackCover';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { useTracks } from '@/context/TrackContext';
@@ -384,11 +385,9 @@ export function Search() {
                             <span className="w-6 text-center text-sm text-muted-foreground">
                               {index + 1}
                             </span>
-                            <img
-                              src={track.coverUrl}
-                              alt={track.title}
-                              className="w-12 h-12 rounded object-cover"
-                            />
+                            <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                              <TrackCover track={track} />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <Link
                                 to={`/track/${track.id}`}
@@ -466,11 +465,11 @@ export function Search() {
                           to={`/playlist/${playlist.id}`}
                           className="group"
                         >
-                          <div className="aspect-square rounded-xl overflow-hidden mb-3">
-                            <img
-                              src={playlist.coverUrl}
-                              alt={playlist.title}
+                          <div className="aspect-square rounded-xl overflow-hidden mb-3 bg-muted">
+                            <TrackCover
+                              playlist={playlist}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              showBadge
                             />
                           </div>
                           <h3 className="font-medium group-hover:text-orange-500 transition-colors">

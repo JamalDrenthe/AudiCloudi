@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { TrackCover } from '@/components/TrackCover';
 import { useAuth } from '@/context/AuthContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
@@ -30,11 +31,9 @@ function TrackRow({ track, index }: { track: Track; index: number }) {
       }`}
     >
       <span className="w-6 text-center text-sm text-muted-foreground">{index + 1}</span>
-      <img
-        src={track.coverUrl}
-        alt={track.title}
-        className="w-12 h-12 rounded object-cover"
-      />
+      <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+        <TrackCover track={track} />
+      </div>
       <div className="flex-1 min-w-0">
         <Link
           to={`/track/${track.id}`}
@@ -252,11 +251,9 @@ export function UserProfile() {
                       to={`/playlist/${playlist.id}`}
                       className="bg-card rounded-xl overflow-hidden hover:-translate-y-1 transition-transform"
                     >
-                      <img
-                        src={playlist.coverUrl}
-                        alt={playlist.title}
-                        className="w-full aspect-square object-cover"
-                      />
+                      <div className="w-full aspect-square overflow-hidden bg-muted">
+                        <TrackCover playlist={playlist} showBadge />
+                      </div>
                       <div className="p-4">
                         <h3 className="font-semibold">{playlist.title}</h3>
                         <p className="text-sm text-muted-foreground">

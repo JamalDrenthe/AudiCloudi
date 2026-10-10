@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { TrackCover } from '@/components/TrackCover';
 import { useAuth } from '@/context/AuthContext';
 import { mockUsers, mockTracks, getUserById } from '@/data/mockData';
 
@@ -208,11 +209,9 @@ export function Admin() {
                           className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg"
                         >
                           <div className="flex items-center gap-4">
-                            <img
-                              src={track.coverUrl}
-                              alt={track.title}
-                              className="w-12 h-12 rounded object-cover"
-                            />
+                            <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                              <TrackCover track={track} />
+                            </div>
                             <div>
                               <Link
                                 to={`/track/${track.id}`}

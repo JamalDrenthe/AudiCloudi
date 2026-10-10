@@ -30,6 +30,7 @@ import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
 import { TrackAnalyticsChart } from '@/components/TrackAnalyticsChart';
+import { TrackCover } from '@/components/TrackCover';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { usePlaylist } from '@/context/PlaylistContext';
@@ -393,10 +394,10 @@ export function TrackDetail() {
               {/* Cover Image */}
               <div className="flex-shrink-0">
                 <div className="relative w-64 h-64 mx-auto md:mx-0 rounded-xl overflow-hidden shadow-2xl">
-                  <img
-                    src={track.coverUrl}
-                    alt={track.title}
+                  <TrackCover
+                    track={track}
                     className="w-full h-full object-cover"
+                    showBadge
                   />
                   <button
                     onClick={handlePlay}
@@ -720,11 +721,9 @@ export function TrackDetail() {
                         to={`/track/${relatedTrack.id}`}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-card transition-colors"
                       >
-                        <img
-                          src={relatedTrack.coverUrl}
-                          alt={relatedTrack.title}
-                          className="w-12 h-12 rounded object-cover"
-                        />
+                        <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                          <TrackCover track={relatedTrack} />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{relatedTrack.title}</p>
                           <p className="text-sm text-muted-foreground">

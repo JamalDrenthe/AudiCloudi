@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { getTracksByFollowingIds, getUserById, mockUsers } from '@/data/mockData';
+import { TrackCover } from '@/components/TrackCover';
 import type { Track } from '@/types';
 import { toast } from 'sonner';
 
@@ -33,10 +34,10 @@ function FeedTrackCard({ track }: { track: Track }) {
       {/* Cover Artwork & Overlay */}
       <div className="relative aspect-video sm:aspect-square overflow-hidden bg-muted">
         <Link to={`/track/${track.id}`} className="block w-full h-full" aria-label={track.title}>
-          <img
-            src={track.coverUrl}
-            alt={track.title}
+          <TrackCover
+            track={track}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            showBadge
           />
         </Link>
 

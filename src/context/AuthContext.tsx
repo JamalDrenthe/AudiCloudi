@@ -21,6 +21,14 @@ interface AuthContextType extends AuthState {
   followUser: (userId: string) => Promise<void>;
   unfollowUser: (userId: string) => Promise<void>;
   isFollowing: (userId: string) => boolean;
+  plan: 'gebruiker' | 'artiest' | 'label';
+  credits: number;
+  monthlyUploadsCount: number;
+  monthlyUploadsLimit: number;
+  updatePlan: (plan: 'gebruiker' | 'artiest' | 'label') => Promise<void>;
+  deductCredits: (amount: number) => boolean;
+  addCredits: (amount: number) => Promise<void>;
+  incrementUploadsCount: (count?: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -336,6 +344,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const currentPlan: 'gebruiker' | 'artiest' | 'label' = state.user?.plan || 'artiest';
+  const currentCredits: number = state.user?.credits ?? (currentPlan === 'label' ? 200000 : currentPlan === 'gebruiker' ? 10000 : 50000);
+  const currentMonthlyUploads: number = state.user?.monthlyUploadsCount ?? 0;
+  const currentUploadsLimit: number = state.user?.monthlyUploadsLimit ?? (currentPlan === 'label' ? 50 : currentPlan === 'gebruiker' ? 0 : 10);
+
+  const updatePlan = async (newPlan: 'gebruiker' | 'artiest' | 'label') => {
+    if (!state.user) return;
+    const planCredits = {
+      gebruiker: 10000,
+      artiest: 50000,
+      label: 200000,
+    };
+    const planLimits = {
+      gebruiker: 0,
+      artiest: 10,
+      label: 50,
+    };
+    const updatedUser: User = {
+      ...state.user,
+      plan: newPlan,
+      credits: (state.user.credits || 0) + planCredits[newPlan],
+      monthlyUploadsLimit: planLimits[newPlan],
+      updatedAt: new Date().toISOString(),
+    };
+    await updateUser(updatedUser);
+  };
+
+  const deductCredits = (amount: number): boolean => {
+    if (!state.user) return false;
+    const current = state.user.credits ?? (state.user.plan === 'label' ? 200000 : state.user.plan === 'gebruiker' ? 10000 : 50000);
+    if (current < amount) return false;
+    const updatedUser: User = {
+      ...state.user,
+      credits: current - amount,
+      updatedAt: new Date().toISOString(),
+    };
+    updateUser(updatedUser);
+    return true;
+  };
+
+  const addCredits = async (amount: number) => {
+    if (!state.user) return;
+    const current = state.user.credits ?? 50000;
+    const updatedUser: User = {
+      ...state.user,
+      credits: current + amount,
+      updatedAt: new Date().toISOString(),
+    };
+    await updateUser(updatedUser);
+  };
+
+  const incrementUploadsCount = (count: number = 1) => {
+    if (!state.user) return;
+    const current = state.user.monthlyUploadsCount || 0;
+    const updatedUser: User = {
+      ...state.user,
+      monthlyUploadsCount: current + count,
+      updatedAt: new Date().toISOString(),
+    };
+    updateUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -350,6 +420,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         followUser,
         unfollowUser,
         isFollowing,
+        plan: currentPlan,
+        credits: currentCredits,
+        monthlyUploadsCount: currentMonthlyUploads,
+        monthlyUploadsLimit: currentUploadsLimit,
+        updatePlan,
+        deductCredits,
+        addCredits,
+        incrementUploadsCount,
       }}
     >
       {children}

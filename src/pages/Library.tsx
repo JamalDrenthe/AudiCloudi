@@ -38,6 +38,7 @@ import { Switch } from '@/components/ui/switch';
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
+import { TrackCover } from '@/components/TrackCover';
 import { useAuth } from '@/context/AuthContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
@@ -198,10 +199,10 @@ export function Library() {
                     >
                       <div>
                         <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-muted">
-                          <img
-                            src={track.coverUrl}
-                            alt={track.title}
+                          <TrackCover
+                            track={track}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            showBadge
                           />
                           <button
                             onClick={() => playTrack(track)}
@@ -302,11 +303,9 @@ export function Library() {
                         <span className="w-6 text-center text-sm text-muted-foreground">
                           {index + 1}
                         </span>
-                        <img
-                          src={track.coverUrl}
-                          alt={track.title}
-                          className="w-12 h-12 rounded object-cover"
-                        />
+                        <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                          <TrackCover track={track} />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <Link
                             to={`/track/${track.id}`}
@@ -360,11 +359,9 @@ export function Library() {
                         <span className="w-6 text-center text-sm text-muted-foreground">
                           {index + 1}
                         </span>
-                        <img
-                          src={track.coverUrl}
-                          alt={track.title}
-                          className="w-12 h-12 rounded object-cover"
-                        />
+                        <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                          <TrackCover track={track} />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <Link
                             to={`/track/${track.id}`}
@@ -487,10 +484,10 @@ export function Library() {
                     >
                       <div>
                         <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-muted">
-                          <img
-                            src={playlist.coverUrl}
-                            alt={playlist.title}
+                          <TrackCover
+                            playlist={playlist}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            showBadge
                           />
                           <button
                             onClick={(e) => handlePlayPlaylist(e, playlist)}
@@ -504,9 +501,16 @@ export function Library() {
                         </div>
 
                         <Link to={`/playlist/${playlist.id}`} className="block">
-                          <h3 className="font-semibold text-base truncate hover:text-orange-500 transition-colors">
-                            {playlist.title}
-                          </h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-semibold text-base truncate hover:text-orange-500 transition-colors">
+                              {playlist.title}
+                            </h3>
+                            {playlist.type === 'album' && (
+                              <span className="text-[10px] uppercase font-bold text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded shrink-0">
+                                Album
+                              </span>
+                            )}
+                          </div>
                         </Link>
 
                         {playlist.description && (

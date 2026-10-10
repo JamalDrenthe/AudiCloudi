@@ -8,6 +8,10 @@ export interface User {
   avatarUrl: string;
   bannerUrl: string;
   role: 'user' | 'moderator' | 'admin';
+  plan?: 'gebruiker' | 'artiest' | 'label';
+  credits?: number;
+  monthlyUploadsCount?: number;
+  monthlyUploadsLimit?: number;
   createdAt: string;
   updatedAt: string;
   followersCount: number;
@@ -37,6 +41,11 @@ export interface Track {
   waveformData: number[];
   audioUrl: string;
   coverUrl: string;
+  coverVideoUrl?: string;
+  coverType?: 'image' | 'video';
+  isMastered?: boolean;
+  albumId?: string;
+  albumTitle?: string;
   isPrivate: boolean;
   isExplicit: boolean;
   license: 'all-rights-reserved' | 'cc-by' | 'cc-by-sa' | 'cc-by-nc' | 'cc-by-nd' | 'public-domain';
@@ -59,6 +68,9 @@ export interface Playlist {
   description: string;
   isPublic: boolean;
   coverUrl: string;
+  coverVideoUrl?: string;
+  coverType?: 'image' | 'video';
+  type?: 'playlist' | 'album';
   tracksCount: number;
   trackIds?: string[];
   createdAt: string;

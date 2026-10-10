@@ -22,7 +22,16 @@ import { toast } from 'sonner';
 interface PlaylistContextType {
   playlists: Playlist[];
   userPlaylists: Playlist[];
-  createPlaylist: (title: string, description?: string, isPublic?: boolean) => Promise<Playlist>;
+  createPlaylist: (
+    title: string,
+    description?: string,
+    isPublic?: boolean,
+    initialTrackIds?: string[],
+    coverUrl?: string,
+    coverVideoUrl?: string,
+    coverType?: 'image' | 'video',
+    type?: 'playlist' | 'album'
+  ) => Promise<Playlist>;
   updatePlaylist: (playlistId: string, updates: Partial<Playlist>) => Promise<void>;
   deletePlaylist: (playlistId: string) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, trackId: string) => Promise<void>;
@@ -108,8 +117,25 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
 
   const getTracksForPlaylist = (playlist: Playlist): Track[] => {
     if (!playlist.trackIds || playlist.trackIds.length === 0) return [];
+    let allKnownTracks = mockTracks;
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('audicloudi_tracks') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved) as Track[];
+        const combined = [...parsed];
+        for (const mt of mockTracks) {
+          if (!combined.some(t => t.id === mt.id)) {
+            combined.push(mt);
+          }
+        }
+        allKnownTracks = combined;
+      }
+    } catch {
+      // Fallback
+    }
+
     return playlist.trackIds
-      .map((tid) => mockTracks.find((t) => t.id === tid))
+      .map((tid) => allKnownTracks.find((t) => t.id === tid))
       .filter((t): t is Track => Boolean(t));
   };
 
@@ -121,21 +147,26 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
   const createPlaylist = async (
     title: string,
     description: string = '',
-    isPublic: boolean = true
+    isPublic: boolean = true,
+    initialTrackIds: string[] = [],
+    customCoverUrl?: string,
+    coverVideoUrl?: string,
+    coverType: 'image' | 'video' = 'image',
+    type: 'playlist' | 'album' = 'playlist'
   ): Promise<Playlist> => {
     if (!user) {
-      toast.error('Je moet ingelogd zijn om een afspeellijst aan te maken');
+      toast.error('Je moet ingelogd zijn om een afspeellijst of album aan te maken');
       throw new Error('Not authenticated');
     }
 
-    const playlistId = `pl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const playlistId = `${type === 'album' ? 'alb' : 'pl'}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const randomCovers = [
       'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop',
       'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=500&fit=crop',
       'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
       'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=500&h=500&fit=crop',
     ];
-    const coverUrl = randomCovers[Math.floor(Math.random() * randomCovers.length)];
+    const coverUrl = customCoverUrl || randomCovers[Math.floor(Math.random() * randomCovers.length)];
 
     const newPlaylist: Playlist = {
       id: playlistId,
@@ -144,8 +175,11 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       description: description.trim(),
       isPublic,
       coverUrl,
-      tracksCount: 0,
-      trackIds: [],
+      coverVideoUrl,
+      coverType,
+      type,
+      tracksCount: initialTrackIds.length,
+      trackIds: initialTrackIds,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       user,
@@ -163,15 +197,18 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
         description: newPlaylist.description,
         isPublic: newPlaylist.isPublic,
         coverUrl: newPlaylist.coverUrl,
-        tracksCount: 0,
-        trackIds: [],
+        coverVideoUrl: newPlaylist.coverVideoUrl || '',
+        coverType: newPlaylist.coverType || 'image',
+        type: newPlaylist.type || 'playlist',
+        tracksCount: newPlaylist.tracksCount,
+        trackIds: newPlaylist.trackIds,
         createdAt: newPlaylist.createdAt,
         updatedAt: newPlaylist.updatedAt,
       });
-      toast.success(`Afspeellijst "${title}" succesvol aangemaakt!`);
+      toast.success(`${type === 'album' ? 'Album' : 'Afspeellijst'} "${newPlaylist.title}" succesvol aangemaakt!`);
     } catch (err) {
-      console.warn('Firestore write notice:', err);
-      toast.success(`Afspeellijst "${title}" aangemaakt!`);
+      console.warn('Could not save playlist to Firestore:', err);
+      toast.success(`${type === 'album' ? 'Album' : 'Afspeellijst'} "${newPlaylist.title}" aangemaakt!`);
     }
 
     return newPlaylist;

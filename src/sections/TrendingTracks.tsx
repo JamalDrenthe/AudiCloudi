@@ -12,6 +12,7 @@ import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
 import { useTracks } from '@/context/TrackContext';
 import { getTrendingTracks, getUserById } from '@/data/mockData';
+import { TrackCover } from '@/components/TrackCover';
 import type { Track } from '@/types';
 
 function TrackCard({ track, index }: { track: Track; index: number }) {
@@ -69,10 +70,10 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
         {/* Cover Image */}
         <div className="relative aspect-square overflow-hidden">
           <Link to={`/track/${track.id}`} className="block w-full h-full" aria-label={track.title}>
-            <img
-              src={track.coverUrl}
-              alt={track.title}
+            <TrackCover
+              track={track}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              showBadge
             />
           </Link>
           {/* Overlay */}

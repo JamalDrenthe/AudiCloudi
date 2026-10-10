@@ -80,18 +80,18 @@ if (typeof window !== 'undefined') {
   initAudioStorage().catch(() => {});
 }
 
-export async function saveLocalAudioFile(trackId: string, file: Blob): Promise<void> {
-  try {
-    // 1. Immediately cache in memory synchronously for instant playback
-    const mimeType = file.type || 'audio/mpeg';
-    memoryBlobCache.set(trackId, file);
-    const existingUrl = memoryAudioUrlCache.get(trackId);
-    if (existingUrl) {
-      URL.revokeObjectURL(existingUrl);
-    }
-    const freshUrl = URL.createObjectURL(file);
-    memoryAudioUrlCache.set(trackId, freshUrl);
+export async function saveLocalAudioFile(trackId: string, file: Blob): Promise<string> {
+  // 1. Immediately cache in memory synchronously for instant playback
+  const mimeType = file.type || 'audio/mpeg';
+  memoryBlobCache.set(trackId, file);
+  const existingUrl = memoryAudioUrlCache.get(trackId);
+  if (existingUrl) {
+    URL.revokeObjectURL(existingUrl);
+  }
+  const freshUrl = URL.createObjectURL(file);
+  memoryAudioUrlCache.set(trackId, freshUrl);
 
+  try {
     // 2. Read arrayBuffer for universal IndexedDB compatibility across all browsers/iframes
     let buffer: ArrayBuffer | null = null;
     try {
@@ -105,13 +105,12 @@ export async function saveLocalAudioFile(trackId: string, file: Blob): Promise<v
       : file;
 
     const db = await openDB();
-    return new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const req = store.put(payload, trackId);
       req.onsuccess = () => resolve();
       req.onerror = () => {
-        // Fallback: try saving raw blob if structured clone of object failed
         try {
           const fallbackTx = db.transaction(STORE_NAME, 'readwrite');
           fallbackTx.objectStore(STORE_NAME).put(file, trackId);
@@ -124,6 +123,8 @@ export async function saveLocalAudioFile(trackId: string, file: Blob): Promise<v
   } catch (err) {
     console.warn('Failed to store audio in IndexedDB:', err);
   }
+
+  return freshUrl;
 }
 
 export async function getLocalAudioUrl(trackId: string): Promise<string | null> {
@@ -169,6 +170,92 @@ export async function getLocalAudioUrl(trackId: string): Promise<string | null> 
   }
 }
 
+// In-memory cache for cover videos
+const memoryVideoUrlCache = new Map<string, string>();
+
+export function getVideoUrlSync(id: string): string | null {
+  return memoryVideoUrlCache.get(id) || null;
+}
+
+export async function saveLocalVideoFile(id: string, file: Blob): Promise<string> {
+  const videoKey = `video_${id}`;
+  const mimeType = file.type || 'video/mp4';
+  const existingUrl = memoryVideoUrlCache.get(id);
+  if (existingUrl) {
+    URL.revokeObjectURL(existingUrl);
+  }
+  const freshUrl = URL.createObjectURL(file);
+  memoryVideoUrlCache.set(id, freshUrl);
+
+  try {
+    let buffer: ArrayBuffer | null = null;
+    try {
+      buffer = await file.arrayBuffer();
+    } catch {
+      buffer = null;
+    }
+
+    const payload = buffer
+      ? { buffer, type: mimeType, updatedAt: Date.now() }
+      : file;
+
+    const db = await openDB();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(payload, videoKey);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+    });
+  } catch (err) {
+    console.warn('Failed to store video in IndexedDB:', err);
+  }
+
+  return freshUrl;
+}
+
+export async function getLocalVideoUrl(id: string): Promise<string | null> {
+  const cached = memoryVideoUrlCache.get(id);
+  if (cached) return cached;
+
+  const videoKey = `video_${id}`;
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(videoKey);
+
+      req.onsuccess = () => {
+        const result = req.result;
+        if (!result) {
+          resolve(null);
+          return;
+        }
+
+        let blob: Blob | null = null;
+        if (result && typeof result === 'object' && 'buffer' in result) {
+          blob = new Blob([result.buffer], { type: result.type || 'video/mp4' });
+        } else if (result instanceof Blob) {
+          blob = result;
+        }
+
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          memoryVideoUrlCache.set(id, url);
+          resolve(url);
+        } else {
+          resolve(null);
+        }
+      };
+
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteLocalAudioFile(trackId: string): Promise<void> {
   const cachedUrl = memoryAudioUrlCache.get(trackId);
   if (cachedUrl) {
@@ -177,14 +264,21 @@ export async function deleteLocalAudioFile(trackId: string): Promise<void> {
   memoryAudioUrlCache.delete(trackId);
   memoryBlobCache.delete(trackId);
 
+  const videoUrl = memoryVideoUrlCache.get(trackId);
+  if (videoUrl) {
+    URL.revokeObjectURL(videoUrl);
+  }
+  memoryVideoUrlCache.delete(trackId);
+
   try {
     const db = await openDB();
-    return new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
-      const req = store.delete(trackId);
-      req.onsuccess = () => resolve();
-      req.onerror = () => resolve();
+      store.delete(trackId);
+      store.delete(`video_${trackId}`);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
     });
   } catch {
     // Ignore
