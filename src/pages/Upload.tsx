@@ -34,7 +34,7 @@ import { Navbar } from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { useTracks } from '@/context/TrackContext';
 import { usePlaylist } from '@/context/PlaylistContext';
-import { saveLocalAudioFile, saveLocalVideoFile } from '@/lib/audioStorage';
+import { saveLocalAudioFile, saveLocalVideoFile, saveLocalCoverImage } from '@/lib/audioStorage';
 import { toast } from 'sonner';
 import type { Track } from '@/types';
 
@@ -210,20 +210,69 @@ export function Upload() {
     );
   };
 
-  // Handle Cover Art or Video Canvas selection
-  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Helper to resize and compress cover image to max 1000x1000 JPEG (~80KB)
+  const processCoverImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_SIZE = 1000;
+          let width = img.width;
+          let height = img.height;
 
-    // Check if video file
-    if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm)$/i)) {
-      const tempVideo = document.createElement('video');
-      tempVideo.preload = 'metadata';
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.88));
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = () => reject(new Error('Image decode error'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Process selected or dropped cover file (image or short MP4 video canvas)
+  const processCoverFile = async (file: File) => {
+    // 1. Check if video file
+    if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|m4v)$/i)) {
       const objUrl = URL.createObjectURL(file);
+      const tempVideo = document.createElement('video');
+      tempVideo.muted = true;
+      tempVideo.playsInline = true;
+      tempVideo.preload = 'auto';
       tempVideo.src = objUrl;
 
-      tempVideo.onloadedmetadata = () => {
-        const dur = Math.round(tempVideo.duration);
+      let hasHandled = false;
+
+      const onVideoReady = () => {
+        if (hasHandled) return;
+        hasHandled = true;
+
+        let dur = Math.round(tempVideo.duration);
+        if (isNaN(dur) || !isFinite(dur) || dur <= 0) {
+          dur = 15;
+        }
         setVideoDuration(dur);
 
         // Strict validation: video must not exceed 1 minute (60 seconds)
@@ -243,25 +292,79 @@ export function Upload() {
         toast.success(`Video canvas geselecteerd (${dur}s, MP4 loop)!`);
       };
 
+      tempVideo.onloadedmetadata = onVideoReady;
+      tempVideo.onloadeddata = onVideoReady;
+      tempVideo.oncanplay = onVideoReady;
+
       tempVideo.onerror = () => {
-        URL.revokeObjectURL(objUrl);
-        toast.error('Kan de video niet inladen. Zorg voor een geldig MP4-bestand.');
+        if (hasHandled) return;
+        hasHandled = true;
+        if (file.size < 50 * 1024 * 1024) {
+          setVideoDuration(15);
+          setCoverVideoFile(file);
+          setCoverVideoUrl(objUrl);
+          setCoverType('video');
+          setCoverImage(null);
+          toast.success('Video canvas geselecteerd!');
+        } else {
+          URL.revokeObjectURL(objUrl);
+          toast.error('Kan de video niet inladen. Zorg voor een geldig MP4-bestand.');
+        }
       };
-    } else if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImage(reader.result as string);
-        setCoverType('image');
-        setCoverVideoFile(null);
-        setCoverVideoUrl(null);
-        toast.success('Cover artwork geselecteerd!');
-      };
-      reader.readAsDataURL(file);
-    } else {
-      toast.error('Selecteer een afbeelding (JPG, PNG) of MP4 video (max 1 minuut).');
+
+      setTimeout(() => {
+        if (!hasHandled && file.size < 50 * 1024 * 1024) {
+          onVideoReady();
+        }
+      }, 1200);
+
+      return;
     }
 
+    // 2. Check if image file
+    if (file.type.startsWith('image/') || file.name.match(/\.(jpe?g|png|webp|gif|avif|svg)$/i)) {
+      try {
+        const compressedDataUrl = await processCoverImage(file);
+        setCoverImage(compressedDataUrl);
+        setCoverType('image');
+        setCoverVideoFile(null);
+        if (coverVideoUrl) {
+          URL.revokeObjectURL(coverVideoUrl);
+          setCoverVideoUrl(null);
+        }
+        toast.success('Cover artwork geselecteerd!');
+      } catch (err) {
+        console.error('Error processing cover image:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setCoverImage(reader.result as string);
+          setCoverType('image');
+          setCoverVideoFile(null);
+          setCoverVideoUrl(null);
+          toast.success('Cover artwork geselecteerd!');
+        };
+        reader.readAsDataURL(file);
+      }
+      return;
+    }
+
+    toast.error('Selecteer een geldige afbeelding (JPG, PNG) of MP4 video (max 1 minuut).');
+  };
+
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processCoverFile(file);
+    }
     e.target.value = '';
+  };
+
+  const handleCoverDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processCoverFile(e.dataTransfer.files[0]);
+    }
   };
 
   const handleClearCover = () => {
@@ -357,9 +460,12 @@ export function Upload() {
         // Save audio to IndexedDB and memory cache so playback plays THIS specific file!
         const savedAudioUrl = await saveLocalAudioFile(item.id, item.file);
 
-        // Also associate video cover with track if video canvas was uploaded
+        // Also associate video or image cover with track in IndexedDB
         if (coverVideoFile) {
           await saveLocalVideoFile(item.id, coverVideoFile);
+        }
+        if (coverImage) {
+          await saveLocalCoverImage(item.id, coverImage);
         }
 
         const createdTrack = await uploadTrack({
@@ -408,6 +514,13 @@ export function Upload() {
           coverType,
           collectionType
         );
+
+        if (coverImage) {
+          await saveLocalCoverImage(newCollection.id, coverImage);
+        }
+        if (coverVideoFile) {
+          await saveLocalVideoFile(newCollection.id, coverVideoFile);
+        }
 
         toast.success(
           `${collectionType === 'album' ? 'Album' : 'Afspeellijst'} "${titleToUse}" met ${createdTrackIds.length} tracks succesvol aangemaakt!`
@@ -653,7 +766,12 @@ export function Upload() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               {/* Preview Area */}
-              <div className="relative aspect-square w-full rounded-xl overflow-hidden border border-border bg-secondary/50 flex items-center justify-center group shadow-md">
+              <div
+                onClick={() => coverInputRef.current?.click()}
+                onDrop={handleCoverDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="relative aspect-square w-full rounded-xl overflow-hidden border border-border bg-secondary/50 flex items-center justify-center group shadow-md cursor-pointer hover:border-orange-500/50 transition-colors"
+              >
                 {coverType === 'video' && coverVideoUrl ? (
                   <video
                     src={coverVideoUrl}
@@ -671,9 +789,9 @@ export function Upload() {
                   />
                 ) : (
                   <div className="text-center p-4">
-                    <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-                    <span className="text-xs text-muted-foreground block">
-                      Geen cover geselecteerd
+                    <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-50 group-hover:text-orange-400 group-hover:opacity-100 transition-all" />
+                    <span className="text-xs text-muted-foreground block group-hover:text-foreground">
+                      Klik of sleep artwork hierheen
                     </span>
                   </div>
                 )}
@@ -689,8 +807,11 @@ export function Upload() {
                 {(coverImage || coverVideoUrl) && (
                   <button
                     type="button"
-                    onClick={handleClearCover}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearCover();
+                    }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors z-10"
                     title="Verwijder cover"
                   >
                     <X className="w-4 h-4" />
@@ -702,25 +823,35 @@ export function Upload() {
               <div className="md:col-span-2 space-y-4">
                 <div
                   onClick={() => coverInputRef.current?.click()}
-                  className="border-2 border-dashed border-border hover:border-orange-500/50 rounded-xl p-6 text-center cursor-pointer hover:bg-orange-500/5 transition-all"
+                  onDrop={handleCoverDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="border-2 border-dashed border-border hover:border-orange-500/50 rounded-xl p-6 text-center cursor-pointer hover:bg-orange-500/5 transition-all group"
                 >
                   <input
                     ref={coverInputRef}
                     type="file"
-                    accept="image/*,video/mp4,video/webm"
+                    accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,video/x-m4v"
                     onChange={handleCoverSelect}
                     className="hidden"
                   />
                   <div className="flex items-center justify-center gap-3 text-sm font-semibold mb-1">
-                    <ImageIcon className="w-4 h-4 text-orange-400" />
+                    <ImageIcon className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
                     <span>Afbeelding</span>
                     <span className="text-muted-foreground">of</span>
-                    <Video className="w-4 h-4 text-orange-400" />
+                    <Video className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
                     <span>Korte MP4 Video</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Klik hier om een cover of canvas video te selecteren (max 1 minuut).
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Klik of sleep een cover artwork of canvas video (max. 1 minuut) hierheen.
                   </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs rounded-lg pointer-events-none group-hover:bg-orange-500 group-hover:text-white transition-colors"
+                  >
+                    Bestand selecteren...
+                  </Button>
                 </div>
 
                 <div className="text-xs text-muted-foreground space-y-1 bg-secondary/40 p-3 rounded-lg border border-border/50">

@@ -67,10 +67,14 @@ export function TrackProvider({ children }: { children: ReactNode }) {
 
   const [isLoadingTracks, setIsLoadingTracks] = useState(true);
 
-  // Sync to localStorage
+  // Sync to localStorage safely
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('audicloudi_tracks', JSON.stringify(tracks));
+      try {
+        localStorage.setItem('audicloudi_tracks', JSON.stringify(tracks));
+      } catch (e) {
+        console.warn('LocalStorage quota reached, storing essential tracks metadata only:', e);
+      }
     }
   }, [tracks]);
 
@@ -176,6 +180,11 @@ export function TrackProvider({ children }: { children: ReactNode }) {
         waveformData: newTrack.waveformData,
         audioUrl: newTrack.audioUrl,
         coverUrl: newTrack.coverUrl,
+        coverVideoUrl: newTrack.coverVideoUrl || '',
+        coverType: newTrack.coverType || 'image',
+        isMastered: Boolean(newTrack.isMastered),
+        albumId: newTrack.albumId || '',
+        albumTitle: newTrack.albumTitle || '',
         isPrivate: Boolean(newTrack.isPrivate),
         isExplicit: Boolean(newTrack.isExplicit),
         license: newTrack.license || 'all-rights-reserved',

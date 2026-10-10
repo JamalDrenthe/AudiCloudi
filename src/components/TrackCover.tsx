@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Music } from 'lucide-react';
 import type { Track, Playlist } from '@/types';
-import { getLocalVideoUrl, getVideoUrlSync } from '@/lib/audioStorage';
+import {
+  getLocalVideoUrl,
+  getVideoUrlSync,
+  getLocalCoverImageUrl,
+  getCoverImageUrlSync,
+} from '@/lib/audioStorage';
 
 interface TrackCoverProps {
   track?: Partial<Track> | null;
@@ -19,42 +24,64 @@ export function TrackCover({
   showBadge = false,
 }: TrackCoverProps) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [localImageUrl, setLocalImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
 
   const rawVideoUrl = track?.coverVideoUrl || playlist?.coverVideoUrl;
-  const coverUrl = track?.coverUrl || playlist?.coverUrl || '';
+  const initialCoverUrl = track?.coverUrl || playlist?.coverUrl || '';
   const isVideoType =
     track?.coverType === 'video' ||
     playlist?.coverType === 'video' ||
     Boolean(rawVideoUrl) ||
-    coverUrl.endsWith('.mp4') ||
-    coverUrl.endsWith('.webm');
+    initialCoverUrl.endsWith('.mp4') ||
+    initialCoverUrl.endsWith('.webm');
 
   const itemId = track?.id || playlist?.id;
 
   useEffect(() => {
-    if (rawVideoUrl) {
-      setVideoUrl(rawVideoUrl);
-      return;
-    }
+    let isMounted = true;
 
     if (itemId) {
-      const syncUrl = getVideoUrlSync(itemId);
-      if (syncUrl) {
-        setVideoUrl(syncUrl);
-        return;
+      // 1. Check sync cover image cache
+      const syncImg = getCoverImageUrlSync(itemId);
+      if (syncImg) {
+        setLocalImageUrl(syncImg);
+      } else {
+        getLocalCoverImageUrl(itemId).then((url) => {
+          if (isMounted && url) {
+            setLocalImageUrl(url);
+          }
+        });
       }
 
-      getLocalVideoUrl(itemId).then((url) => {
-        if (url) {
-          setVideoUrl(url);
-        }
-      });
+      // 2. Check sync video cache
+      const syncVideo = getVideoUrlSync(itemId);
+      if (syncVideo) {
+        setVideoUrl(syncVideo);
+      } else {
+        getLocalVideoUrl(itemId).then((url) => {
+          if (!isMounted) return;
+          if (url) {
+            setVideoUrl(url);
+          } else if (rawVideoUrl && !rawVideoUrl.startsWith('blob:')) {
+            setVideoUrl(rawVideoUrl);
+          }
+        });
+      }
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (rawVideoUrl) {
+      setVideoUrl(rawVideoUrl);
     }
   }, [itemId, rawVideoUrl]);
 
-  if (isVideoType && (videoUrl || coverUrl.endsWith('.mp4'))) {
-    const src = videoUrl || coverUrl;
+  const effectiveCoverUrl = localImageUrl || initialCoverUrl;
+
+  if (isVideoType && (videoUrl || initialCoverUrl.endsWith('.mp4'))) {
+    const src = videoUrl || initialCoverUrl;
     return (
       <div className="relative w-full h-full overflow-hidden bg-black/60">
         <video
@@ -63,6 +90,7 @@ export function TrackCover({
           loop
           muted
           playsInline
+          onError={() => setVideoUrl(null)}
           className={className}
         />
         {showBadge && (
@@ -74,10 +102,10 @@ export function TrackCover({
     );
   }
 
-  if (coverUrl && !imageError) {
+  if (effectiveCoverUrl && !imageError) {
     return (
       <img
-        src={coverUrl}
+        src={effectiveCoverUrl}
         alt={track?.title || playlist?.title || fallbackTitle}
         onError={() => setImageError(true)}
         className={className}

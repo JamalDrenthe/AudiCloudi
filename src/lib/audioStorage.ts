@@ -256,6 +256,62 @@ export async function getLocalVideoUrl(id: string): Promise<string | null> {
   }
 }
 
+// In-memory cache for cover images
+const memoryCoverImageUrlCache = new Map<string, string>();
+
+export function getCoverImageUrlSync(id: string): string | null {
+  return memoryCoverImageUrlCache.get(id) || null;
+}
+
+export async function saveLocalCoverImage(id: string, imageSrc: string): Promise<string> {
+  const imageKey = `cover_${id}`;
+  memoryCoverImageUrlCache.set(id, imageSrc);
+
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(imageSrc, imageKey);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+    });
+  } catch (err) {
+    console.warn('Failed to store cover image in IndexedDB:', err);
+  }
+
+  return imageSrc;
+}
+
+export async function getLocalCoverImageUrl(id: string): Promise<string | null> {
+  const cached = memoryCoverImageUrlCache.get(id);
+  if (cached) return cached;
+
+  const imageKey = `cover_${id}`;
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(imageKey);
+
+      req.onsuccess = () => {
+        const result = req.result;
+        if (result && typeof result === 'string') {
+          memoryCoverImageUrlCache.set(id, result);
+          resolve(result);
+        } else {
+          resolve(null);
+        }
+      };
+
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteLocalAudioFile(trackId: string): Promise<void> {
   const cachedUrl = memoryAudioUrlCache.get(trackId);
   if (cachedUrl) {
@@ -269,6 +325,7 @@ export async function deleteLocalAudioFile(trackId: string): Promise<void> {
     URL.revokeObjectURL(videoUrl);
   }
   memoryVideoUrlCache.delete(trackId);
+  memoryCoverImageUrlCache.delete(trackId);
 
   try {
     const db = await openDB();
@@ -277,6 +334,7 @@ export async function deleteLocalAudioFile(trackId: string): Promise<void> {
       const store = tx.objectStore(STORE_NAME);
       store.delete(trackId);
       store.delete(`video_${trackId}`);
+      store.delete(`cover_${trackId}`);
       tx.oncomplete = () => resolve();
       tx.onerror = () => resolve();
     });
