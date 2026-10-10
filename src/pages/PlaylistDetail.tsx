@@ -112,21 +112,22 @@ export function PlaylistDetail() {
 
       <main className="pt-16">
         {/* Header Hero */}
-        <div className="bg-gradient-to-b from-orange-500/15 via-background/80 to-background border-b border-border/40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="relative overflow-hidden bg-gradient-to-b from-[#161617] via-background to-background border-b border-white/[0.08]">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#fa233b]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 relative z-10">
             <Button
               variant="ghost"
               size="sm"
-              className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+              className="mb-6 -ml-2 text-[#86868b] hover:text-white rounded-full"
               onClick={() => navigate('/library')}
             >
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Terug naar Bibliotheek
             </Button>
 
-            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-8 sm:gap-10">
               {/* Cover Artwork */}
-              <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl shrink-0 border border-border/50 bg-muted">
+              <div className="w-52 h-52 sm:w-64 sm:h-64 rounded-3xl overflow-hidden shadow-2xl shrink-0 ring-1 ring-white/[0.1] bg-[#1c1c1e]">
                 <TrackCover
                   playlist={playlist}
                   className="w-full h-full object-cover"
@@ -136,28 +137,28 @@ export function PlaylistDetail() {
 
               {/* Details */}
               <div className="flex-1 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
-                  <span className="text-xs font-semibold tracking-wider uppercase text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-md">
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
+                  <span className="text-xs font-semibold tracking-wider uppercase text-[#fa233b] bg-[#fa233b]/10 border border-[#fa233b]/20 px-3 py-1 rounded-full">
                     {playlist.type === 'album' ? 'Album' : 'Afspeellijst'}
                   </span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    {playlist.isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                  <span className="text-xs text-[#86868b] flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] px-2.5 py-0.5 rounded-full">
+                    {playlist.isPublic ? <Globe className="w-3 h-3 text-[#86868b]" /> : <Lock className="w-3 h-3 text-[#86868b]" />}
                     {playlist.isPublic ? 'Openbaar' : 'Privé'}
                   </span>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-2">
+                <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-2">
                   {playlist.title}
                 </h1>
 
                 {playlist.description && (
-                  <p className="text-sm text-muted-foreground max-w-xl mb-4 line-clamp-2">
+                  <p className="text-sm text-[#86868b] max-w-xl mb-4 line-clamp-2 leading-relaxed">
                     {playlist.description}
                   </p>
                 )}
 
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-muted-foreground mb-6">
-                  <span className="font-medium text-foreground">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-[#86868b] mb-6">
+                  <span className="font-semibold text-white">
                     {creator?.displayName || user?.displayName || 'Gebruiker'}
                   </span>
                   <span>•</span>
@@ -170,20 +171,21 @@ export function PlaylistDetail() {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                   <Button
                     size="lg"
-                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg shadow-orange-500/25"
+                    variant="apple"
+                    className="h-11 px-8 font-semibold text-sm shadow-xl"
                     onClick={handlePlayAll}
                     disabled={tracks.length === 0}
                   >
-                    <Play className="w-5 h-5 mr-2 fill-current" />
+                    <Play className="w-4 h-4 mr-2 fill-current" />
                     Alles afspelen
                   </Button>
 
                   {isOwner && (
                     <>
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="icon"
-                        className="rounded-full"
+                        className="h-11 w-11 rounded-full border-white/[0.08]"
                         onClick={() => {
                           setEditTitle(playlist.title);
                           setEditDescription(playlist.description || '');
@@ -196,9 +198,9 @@ export function PlaylistDetail() {
                       </Button>
 
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="icon"
-                        className="rounded-full text-muted-foreground hover:text-red-500 hover:border-red-500/40"
+                        className="h-11 w-11 rounded-full border-white/[0.08] text-[#86868b] hover:text-red-400"
                         onClick={handleDelete}
                         title="Afspeellijst verwijderen"
                       >
@@ -208,9 +210,9 @@ export function PlaylistDetail() {
                   )}
 
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
-                    className="rounded-full"
+                    className="h-11 w-11 rounded-full border-white/[0.08]"
                     onClick={() => {
                       navigator.clipboard.writeText(window.location.href);
                       toast.success('Link naar afspeellijst gekopieerd!');
@@ -226,10 +228,10 @@ export function PlaylistDetail() {
         </div>
 
         {/* Tracks List */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {tracks.length > 0 ? (
-            <div className="space-y-1">
-              <div className="grid grid-cols-12 px-4 py-2 text-xs font-semibold uppercase text-muted-foreground border-b border-border/50">
+            <div className="space-y-1.5 bg-[#161617]/70 border border-white/[0.08] rounded-3xl p-3 sm:p-5">
+              <div className="grid grid-cols-12 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#86868b] border-b border-white/[0.06]">
                 <span className="col-span-1">#</span>
                 <span className="col-span-6 sm:col-span-7">Titel</span>
                 <span className="hidden sm:block sm:col-span-3">Genre</span>
@@ -245,44 +247,44 @@ export function PlaylistDetail() {
                 return (
                   <div
                     key={`${track.id}-${idx}`}
-                    className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-card/80 transition-colors group ${
-                      isCurrent ? 'bg-orange-500/10' : ''
+                    className={`grid grid-cols-12 items-center px-4 py-3 rounded-2xl hover:bg-white/[0.04] transition-colors group ${
+                      isCurrent ? 'bg-white/[0.06]' : ''
                     }`}
                   >
                     {/* Index or Play icon */}
                     <div className="col-span-1 flex items-center">
                       <button
                         onClick={() => playTrack(track)}
-                        className="w-6 h-6 flex items-center justify-center text-muted-foreground group-hover:text-orange-500 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center text-[#86868b] group-hover:text-white transition-colors"
                       >
                         {isCurrent && isPlaying ? (
-                          <Pause className="w-4 h-4 text-orange-500 fill-current" />
+                          <Pause className="w-4 h-4 text-[#fa233b] fill-current" />
                         ) : (
-                          <span className="group-hover:hidden text-xs">{idx + 1}</span>
+                          <span className="group-hover:hidden text-xs font-semibold font-mono">{idx + 1}</span>
                         )}
                         {(!isCurrent || !isPlaying) && (
-                          <Play className="w-4 h-4 hidden group-hover:block fill-current" />
+                          <Play className="w-3.5 h-3.5 hidden group-hover:block fill-current" />
                         )}
                       </button>
                     </div>
 
                     {/* Track Artwork & Title */}
                     <div className="col-span-6 sm:col-span-7 flex items-center gap-3 min-w-0 pr-2">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-muted">
+                      <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-[#1c1c1e] ring-1 ring-white/[0.08]">
                         <TrackCover track={track} />
                       </div>
                       <div className="min-w-0">
                         <Link
                           to={`/track/${track.id}`}
-                          className={`font-medium text-sm truncate block hover:text-orange-500 transition-colors ${
-                            isCurrent ? 'text-orange-500' : ''
+                          className={`font-semibold text-sm truncate block hover:text-[#fa233b] transition-colors ${
+                            isCurrent ? 'text-[#fa233b]' : 'text-[#f5f5f7]'
                           }`}
                         >
                           {track.title}
                         </Link>
                         <Link
                           to={`/user/${track.userId}`}
-                          className="text-xs text-muted-foreground truncate block hover:text-foreground"
+                          className="text-xs text-[#86868b] truncate block hover:text-white transition-colors"
                         >
                           {artist?.displayName || 'Artiest'}
                         </Link>
@@ -291,21 +293,21 @@ export function PlaylistDetail() {
 
                     {/* Genre */}
                     <div className="hidden sm:block sm:col-span-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#1c1c1e] border border-white/[0.06] text-[#86868b]">
                         {track.genre}
                       </span>
                     </div>
 
                     {/* Duration & Remove button */}
                     <div className="col-span-5 sm:col-span-1 flex items-center justify-end gap-2 text-right">
-                      <span className="text-xs font-mono text-muted-foreground">
+                      <span className="text-xs font-mono text-[#86868b]">
                         {track.durationFormatted}
                       </span>
 
                       {isOwner && (
                         <button
                           onClick={() => removeTrackFromPlaylist(playlist.id, track.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500 p-1"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#86868b] hover:text-red-400 p-1"
                           title="Verwijder uit afspeellijst"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -317,7 +319,7 @@ export function PlaylistDetail() {
               })}
             </div>
           ) : (
-            <div className="text-center py-16 bg-card/40 rounded-2xl border border-dashed border-border max-w-lg mx-auto p-8">
+            <div className="text-center py-16 bg-[#161617]/50 rounded-3xl border border-white/[0.08] max-w-lg mx-auto p-8">
               <Music className="w-12 h-12 mx-auto text-orange-500/50 mb-3" />
               <h3 className="text-lg font-semibold mb-2">Deze afspeellijst is nog leeg</h3>
               <p className="text-sm text-muted-foreground mb-6">

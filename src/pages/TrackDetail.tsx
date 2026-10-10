@@ -93,30 +93,30 @@ function CommentItem({ comment, currentUser, onEdit, onDelete }: CommentItemProp
   };
 
   return (
-    <div className="flex gap-4 p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors group">
-      <Avatar className="h-10 w-10 shrink-0">
+    <div className="flex gap-4 p-5 rounded-2xl bg-[#161617]/90 border border-white/[0.08] hover:border-white/[0.15] transition-all group">
+      <Avatar className="h-10 w-10 shrink-0 ring-1 ring-white/[0.1]">
         <AvatarImage src={author?.avatarUrl} alt={author?.displayName} />
-        <AvatarFallback>{author?.displayName?.[0] || 'U'}</AvatarFallback>
+        <AvatarFallback className="bg-[#242426] text-white font-bold">{author?.displayName?.[0] || 'U'}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               to={`/user/${comment.userId}`}
-              className="font-medium text-sm hover:text-orange-500 transition-colors truncate"
+              className="font-semibold text-sm text-[#f5f5f7] hover:text-[#fa233b] transition-colors truncate"
             >
               {author?.displayName || 'Gebruiker'}
             </Link>
             {author?.role === 'admin' && (
-              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30">
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#fa233b]/10 text-[#fa233b] border border-[#fa233b]/20">
                 Admin
               </span>
             )}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-[#86868b]">
               {formatDistanceToNow(comment.createdAt)}
             </span>
             {comment.updatedAt && (
-              <span className="text-[11px] text-muted-foreground italic">(bewerkt)</span>
+              <span className="text-[11px] text-[#86868b] italic">(bewerkt)</span>
             )}
           </div>
 
@@ -387,28 +387,29 @@ export function TrackDetail() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <Navbar />
-      <main className="pt-16">
+      <main className="pt-20">
         {/* Track Header */}
-        <div className="bg-gradient-to-b from-orange-500/10 to-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-col md:flex-row gap-8">
+        <div className="relative overflow-hidden border-b border-white/[0.08] bg-gradient-to-b from-[#161617] via-background to-background">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#fa233b]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+            <div className="flex flex-col md:flex-row gap-8 lg:gap-10 items-center md:items-end">
               {/* Cover Image */}
               <div className="flex-shrink-0">
-                <div className="relative w-64 h-64 mx-auto md:mx-0 rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative w-64 h-64 sm:w-72 sm:h-72 mx-auto md:mx-0 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/[0.1] group">
                   <TrackCover
                     track={track}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     showBadge
                   />
                   <button
                     onClick={handlePlay}
-                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
                   >
-                    <div className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform">
                       {isCurrentTrack && isPlaying ? (
-                        <Pause className="w-8 h-8 text-white" />
+                        <Pause className="w-7 h-7 text-black fill-current" />
                       ) : (
-                        <Play className="w-8 h-8 text-white ml-1" />
+                        <Play className="w-7 h-7 text-black fill-current ml-1" />
                       )}
                     </div>
                   </button>
@@ -416,55 +417,66 @@ export function TrackDetail() {
               </div>
 
               {/* Track Info */}
-              <div className="flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 flex flex-col justify-end text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
                   {track.isExplicit && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-zinc-800 rounded">
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-[#1c1c1e] text-[#86868b] border border-white/[0.08] rounded">
                       E
                     </span>
                   )}
-                  <span className="text-sm text-muted-foreground">{track.genre}</span>
+                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-white/[0.06] border border-white/[0.08] text-[#fa233b]">
+                    {track.genre}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868b] border border-white/[0.08] px-2.5 py-0.5 rounded-full bg-white/[0.04]">
+                    Lossless Audio
+                  </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">{track.title}</h1>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-2">
+                  {track.title}
+                </h1>
                 <Link
                   to={`/user/${track.userId}`}
-                  className="text-lg text-muted-foreground hover:text-orange-500 transition-colors"
+                  className="text-lg sm:text-xl font-medium text-[#fa233b] hover:underline transition-colors"
                 >
                   {trackUser.displayName}
                 </Link>
 
                 {/* Stats */}
-                <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center md:justify-start gap-5 mt-4 text-xs text-[#86868b]">
                   <span>{track.playsCount.toLocaleString()} plays</span>
+                  <span>•</span>
                   <span>{track.likesCount.toLocaleString()} likes</span>
+                  <span>•</span>
                   <span>{track.repostsCount.toLocaleString()} reposts</span>
-                  <span>{track.commentsCount} comments</span>
+                  <span>•</span>
+                  <span>{track.commentsCount} reacties</span>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-3 mt-6">
+                <div className="flex items-center justify-center md:justify-start gap-3 mt-6 flex-wrap">
                   <Button
                     size="lg"
-                    className="rounded-full bg-orange-500 hover:bg-orange-600"
+                    variant={isCurrentTrack && isPlaying ? "secondary" : "apple"}
+                    className="h-11 px-7 font-semibold shadow-xl"
                     onClick={handlePlay}
                   >
                     {isCurrentTrack && isPlaying ? (
                       <>
-                        <Pause className="w-5 h-5 mr-2" />
-                        Pause
+                        <Pause className="w-4 h-4 mr-2" />
+                        Pauzeren
                       </>
                     ) : (
                       <>
-                        <Play className="w-5 h-5 mr-2" />
-                        Play
+                        <Play className="w-4 h-4 mr-2 fill-current" />
+                        Afspelen
                       </>
                     )}
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
-                    className={`rounded-full transition-all duration-200 active:scale-90 ${
-                      isLiked ? 'text-rose-500 border-rose-500 bg-rose-500/10' : 'hover:border-rose-500/50'
+                    className={`h-11 w-11 rounded-full transition-all duration-200 active:scale-95 ${
+                      isLiked ? 'text-[#fa233b] border-[#fa233b]/40 bg-[#fa233b]/10' : 'border-white/[0.08]'
                     }`}
                     onClick={() => {
                       if (!isAuthenticated) {
@@ -476,16 +488,16 @@ export function TrackDetail() {
                     title={isLiked ? "Unlike" : "Like"}
                   >
                     <Heart
-                      className={`w-5 h-5 transition-all duration-300 ease-out ${
-                        isLiked ? 'fill-current text-rose-500' : ''
+                      className={`w-4 h-4 transition-all duration-300 ease-out ${
+                        isLiked ? 'fill-current text-[#fa233b]' : ''
                       }`}
                     />
                   </Button>
                   {isAuthenticated && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="icon"
-                      className={`rounded-full ${isReposted ? 'text-emerald-400 border-emerald-400 bg-emerald-500/10' : ''}`}
+                      className={`h-11 w-11 rounded-full ${isReposted ? 'text-emerald-400 border-emerald-400 bg-emerald-500/10' : 'border-white/[0.08]'}`}
                       onClick={() => {
                         const res = toggleRepost(track.id);
                         if (res) toast.success(`"${track.title}" herplaatst op je profiel!`);
@@ -493,30 +505,36 @@ export function TrackDetail() {
                       }}
                       title={isReposted ? "Herplaatst" : "Herplaatsen"}
                     >
-                      <Repeat className="w-5 h-5" />
+                      <Repeat className="w-4 h-4" />
                     </Button>
                   )}
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
-                    className="rounded-full hover:border-orange-500/50"
+                    className="h-11 w-11 rounded-full border-white/[0.08]"
                     onClick={() => setIsShareModalOpen(true)}
                     title="Deel naar socials"
                   >
-                    <Share2 className="w-5 h-5" />
+                    <Share2 className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="rounded-full" onClick={handleDownload} title="Download">
-                    <Download className="w-5 h-5" />
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-11 w-11 rounded-full border-white/[0.08]"
+                    onClick={handleDownload}
+                    title="Download"
+                  >
+                    <Download className="w-4 h-4" />
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" className="rounded-full">
-                        <MoreHorizontal className="w-5 h-5" />
+                      <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full border-white/[0.08]">
+                        <MoreHorizontal className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent className="bg-[#1c1c1e] border-white/[0.08] text-white">
                       <DropdownMenuItem onClick={() => addToQueue(track)}>
-                        Add to Queue
+                        Aan wachtrij toevoegen
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)}>
                         Toevoegen aan afspeellijst
@@ -527,7 +545,7 @@ export function TrackDetail() {
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Flag className="w-4 h-4 mr-2" />
-                        Report
+                        Rapporteren
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -538,15 +556,15 @@ export function TrackDetail() {
         </div>
 
         {/* Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-10">
               {/* Description */}
               {track.description && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Description</h3>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
+                <div className="bg-[#161617]/70 border border-white/[0.08] rounded-3xl p-6">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-[#86868b] mb-2">Beschrijving</h3>
+                  <p className="text-[#f5f5f7] whitespace-pre-wrap leading-relaxed text-sm">
                     {track.description}
                   </p>
                 </div>
@@ -555,13 +573,13 @@ export function TrackDetail() {
               {/* Tags */}
               {track.tags.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Tags</h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-[#86868b] mb-3">Tags</h3>
                   <div className="flex flex-wrap gap-2">
                     {track.tags.map((tag) => (
                       <Link
                         key={tag}
                         to={`/search?q=${encodeURIComponent(tag)}`}
-                        className="px-3 py-1 text-sm bg-secondary rounded-full hover:bg-orange-500/20 hover:text-orange-500 transition-colors"
+                        className="px-3.5 py-1.5 text-xs font-medium bg-[#161617] border border-white/[0.08] rounded-full hover:border-[#fa233b]/40 hover:text-[#fa233b] text-[#86868b] transition-colors"
                       >
                         #{tag}
                       </Link>
@@ -571,10 +589,10 @@ export function TrackDetail() {
               )}
 
               {/* License */}
-              <div>
-                <h3 className="text-lg font-semibold mb-2">License</h3>
-                <p className="text-sm text-muted-foreground">
-                  {track.license === 'all-rights-reserved' && 'All Rights Reserved'}
+              <div className="bg-[#161617]/50 border border-white/[0.06] rounded-2xl p-5 text-xs">
+                <span className="font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Licentie & Rechten</span>
+                <p className="text-[#f5f5f7]">
+                  {track.license === 'all-rights-reserved' && 'All Rights Reserved • Alle rechten voorbehouden'}
                   {track.license === 'cc-by' && 'Creative Commons Attribution'}
                   {track.license === 'cc-by-sa' && 'Creative Commons Attribution-ShareAlike'}
                   {track.license === 'cc-by-nc' && 'Creative Commons Attribution-NonCommercial'}
@@ -586,48 +604,50 @@ export function TrackDetail() {
               {/* Data Visualization: 30-Day Plays Analytics */}
               <TrackAnalyticsChart track={track} />
 
-              <Separator />
+              <Separator className="bg-white/[0.08]" />
 
               {/* Comments */}
               <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-orange-500" />
+                <h3 className="text-xl font-bold tracking-tight text-white mb-6 flex items-center gap-2.5">
+                  <MessageSquare className="w-5 h-5 text-[#fa233b]" />
                   Reacties ({comments.length})
                 </h3>
 
                 {isAuthenticated ? (
-                  <form onSubmit={handleSubmitComment} className="mb-6 bg-card border border-border/60 rounded-xl p-4">
+                  <form onSubmit={handleSubmitComment} className="mb-8 bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6">
                     <div className="flex gap-4">
-                      <Avatar className="h-10 w-10 shrink-0">
+                      <Avatar className="h-10 w-10 shrink-0 ring-1 ring-white/[0.1]">
                         <AvatarImage src={user?.avatarUrl} alt={user?.displayName} />
-                        <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
+                        <AvatarFallback className="bg-[#242426] text-white font-bold">{user?.displayName?.[0] || 'U'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs text-muted-foreground">
-                            Plaats een reactie als <span className="font-medium text-foreground">{user?.displayName}</span>
+                          <p className="text-xs text-[#86868b]">
+                            Plaats een reactie als <span className="font-semibold text-white">{user?.displayName}</span>
                           </p>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px] text-[#86868b]">
                             {commentText.length}/1000
                           </span>
                         </div>
                         <Textarea
-                          placeholder="Schrijf jouw reactie op dit nummer..."
+                          placeholder="Deel jouw gedachten over deze track..."
                           value={commentText}
                           onChange={(e) => setCommentText(e.target.value)}
-                          className="min-h-[80px] text-sm"
+                          className="min-h-[80px] text-sm bg-[#1c1c1e] border-white/[0.08] rounded-2xl focus-visible:ring-[#fa233b] text-white placeholder:text-[#86868b]"
                           maxLength={1000}
                           disabled={isPostingComment}
                         />
-                        <div className="flex justify-end mt-3">
+                        <div className="flex justify-end mt-4">
                           <Button
                             type="submit"
                             disabled={!commentText.trim() || isPostingComment}
-                            className="rounded-full bg-orange-500 hover:bg-orange-600 text-white"
+                            variant="apple"
+                            size="sm"
+                            className="h-9 px-5 font-semibold text-xs"
                           >
                             {isPostingComment ? (
                               <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
                                 Plaatsen...
                               </>
                             ) : (
@@ -639,11 +659,11 @@ export function TrackDetail() {
                     </div>
                   </form>
                 ) : (
-                  <div className="mb-6 p-4 rounded-xl bg-card border border-dashed border-border flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="mb-8 p-6 rounded-3xl bg-[#161617]/80 border border-white/[0.08] flex items-center justify-between gap-4">
+                    <p className="text-sm text-[#86868b]">
                       Log in om een reactie te plaatsen en mee te praten.
                     </p>
-                    <Button asChild size="sm" className="rounded-full bg-orange-500 hover:bg-orange-600">
+                    <Button asChild size="sm" variant="apple" className="h-9 px-5 text-xs font-semibold">
                       <Link to="/login">Inloggen</Link>
                     </Button>
                   </div>
@@ -661,7 +681,7 @@ export function TrackDetail() {
                       />
                     ))
                   ) : (
-                    <div className="text-center py-8 rounded-xl bg-card/30 border border-dashed border-border text-sm text-muted-foreground">
+                    <div className="text-center py-10 rounded-3xl bg-[#161617]/50 border border-white/[0.08] text-sm text-[#86868b]">
                       Nog geen reacties voor dit nummer. Deel als eerste jouw mening!
                     </div>
                   )}
@@ -672,29 +692,29 @@ export function TrackDetail() {
             {/* Sidebar */}
             <div className="space-y-8">
               {/* Artist Card */}
-              <div className="bg-card rounded-xl p-6">
+              <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 shadow-xl">
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
+                  <Avatar className="h-16 w-16 ring-2 ring-white/[0.1]">
                     <AvatarImage src={trackUser.avatarUrl} alt={trackUser.displayName} />
-                    <AvatarFallback>{trackUser.displayName[0]}</AvatarFallback>
+                    <AvatarFallback className="bg-[#242426] text-white font-bold">{trackUser.displayName[0]}</AvatarFallback>
                   </Avatar>
                   <div>
                     <Link
                       to={`/user/${trackUser.id}`}
-                      className="font-semibold hover:text-orange-500 transition-colors"
+                      className="font-bold text-white hover:text-[#fa233b] transition-colors block text-lg tracking-tight"
                     >
                       {trackUser.displayName}
                     </Link>
-                    <p className="text-sm text-muted-foreground">
-                      {trackUser.followersCount.toLocaleString()} followers
+                    <p className="text-xs text-[#86868b] mt-0.5">
+                      {trackUser.followersCount.toLocaleString()} volgers
                     </p>
                   </div>
                 </div>
                 <Button
-                  className={`w-full mt-4 rounded-full transition-all text-xs ${
+                  className={`w-full mt-5 rounded-full transition-all text-xs font-semibold h-10 ${
                     isFollowing(trackUser.id)
-                      ? "bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25"
-                      : "hover:border-orange-500/50"
+                      ? "bg-white/[0.1] text-white border border-white/[0.15]"
+                      : "hover:border-white/[0.3]"
                   }`}
                   variant={isFollowing(trackUser.id) ? "secondary" : "outline"}
                   onClick={() => {
@@ -709,7 +729,7 @@ export function TrackDetail() {
                 >
                   {isFollowing(trackUser.id) ? (
                     <>
-                      <Check className="w-4 h-4 mr-1.5" />
+                      <Check className="w-4 h-4 mr-1.5 text-[#fa233b]" />
                       Volgend
                     </>
                   ) : (
@@ -723,21 +743,23 @@ export function TrackDetail() {
 
               {/* Related Tracks */}
               {relatedTracks.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">More from {trackUser.displayName}</h3>
-                  <div className="space-y-3">
+                <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 shadow-xl">
+                  <h3 className="text-base font-bold text-white tracking-tight mb-4">Meer van {trackUser.displayName}</h3>
+                  <div className="space-y-2">
                     {relatedTracks.map((relatedTrack) => (
                       <Link
                         key={relatedTrack.id}
                         to={`/track/${relatedTrack.id}`}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-card transition-colors"
+                        className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-white/[0.04] transition-colors group"
                       >
-                        <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-[#1c1c1e] ring-1 ring-white/[0.08]">
                           <TrackCover track={relatedTrack} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{relatedTrack.title}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-semibold text-sm text-[#f5f5f7] group-hover:text-[#fa233b] transition-colors truncate">
+                            {relatedTrack.title}
+                          </p>
+                          <p className="text-xs text-[#86868b] mt-0.5">
                             {relatedTrack.playsCount.toLocaleString()} plays
                           </p>
                         </div>

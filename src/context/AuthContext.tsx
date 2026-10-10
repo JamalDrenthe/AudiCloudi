@@ -8,7 +8,7 @@ import {
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '@/lib/firebase';
 import type { User, AuthState, LoginFormData, RegisterFormData, DirectMessage } from '@/types';
-import { mockUsers, getUserById } from '@/data/mockData';
+import { mockUsers, getUserById, updateMockUser } from '@/data/mockData';
 
 interface AuthContextType extends AuthState {
   login: (data: LoginFormData) => Promise<boolean>;
@@ -18,6 +18,7 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
+  adminUpdateUser: (userId: string, updates: Partial<User>) => Promise<User | undefined>;
   followingIds: string[];
   followUser: (userId: string) => Promise<void>;
   unfollowUser: (userId: string) => Promise<void>;
@@ -520,6 +521,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await updateUser(updatedUser);
   };
 
+  const adminUpdateUser = async (userId: string, updates: Partial<User>): Promise<User | undefined> => {
+    const updated = updateMockUser(userId, updates);
+    if (!updated) return undefined;
+
+    // If the updated user is the currently logged-in user, sync state.user as well
+    if (state.user && (state.user.id === updated.id || state.user.username === updated.username)) {
+      const merged = { ...state.user, ...updated };
+      localStorage.setItem('audicloudi_user', JSON.stringify(merged));
+      setState(prev => ({ ...prev, user: merged }));
+    }
+
+    // Persist to Firestore if user doc exists
+    try {
+      const userDocRef = doc(db, 'users', updated.id);
+      await setDoc(userDocRef, updated, { merge: true });
+    } catch (err) {
+      console.warn('Could not persist admin user update to Firestore:', err);
+    }
+
+    return updated;
+  };
+
   const sendDirectMessage = async (recipientIds: string[], recipientNames: string[], content: string) => {
     const currentSenderId = state.user?.id || 'admin_jamal';
     const currentSenderName = state.user?.displayName || 'Jamal Drenthe';
@@ -560,6 +583,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         updateUser,
         updateProfile,
+        adminUpdateUser,
         followingIds,
         followUser,
         unfollowUser,

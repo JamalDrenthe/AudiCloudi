@@ -213,10 +213,10 @@ export function Waveform({
                 style={{ height: `${heightPercent}%` }}
                 className={`w-full max-w-[3.5px] min-w-[1.5px] rounded-full transition-all duration-150 ${
                   isPlayed
-                    ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]'
+                    ? 'bg-[#fa233b] shadow-[0_0_8px_rgba(250,35,59,0.5)]'
                     : isHovered
-                    ? 'bg-orange-300/80 dark:bg-orange-400/70'
-                    : 'bg-muted-foreground/25 dark:bg-zinc-700/60'
+                    ? 'bg-[#fa233b]/60'
+                    : 'bg-white/20'
                 } ${
                   isNearHead && isPlaying
                     ? 'scale-y-110 brightness-125'
@@ -243,13 +243,13 @@ export function Waveform({
         <>
           <div
             style={{ left: `${hoverPosition.x}px` }}
-            className="absolute top-0 bottom-0 w-[1.5px] bg-orange-400/80 pointer-events-none z-20"
+            className="absolute top-0 bottom-0 w-[1.5px] bg-[#fa233b] pointer-events-none z-20"
           />
           <div
             style={{
               left: `${Math.max(28, Math.min(hoverPosition.x, (containerRef.current?.clientWidth || 200) - 28))}px`,
             }}
-            className="absolute -top-7 -translate-x-1/2 pointer-events-none z-30 px-2 py-0.5 rounded-md bg-zinc-900/95 text-white border border-orange-500/30 text-[11px] font-mono font-medium shadow-lg"
+            className="absolute -top-7 -translate-x-1/2 pointer-events-none z-30 px-2 py-0.5 rounded-full bg-[#1c1c1e]/95 text-[#f5f5f7] border border-white/10 text-[11px] font-mono font-medium shadow-xl backdrop-blur-md"
           >
             {formatTime(hoverPosition.time)}
           </div>

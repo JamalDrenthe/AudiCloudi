@@ -74,13 +74,13 @@ function TrackCard({
     <div
       ref={cardRef}
       className="group opacity-0"
-      style={{ animationDelay: `${index * 0.05}s` }}
+      style={{ animationDelay: `${index * 0.04}s` }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-card rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
+      <div className="bg-[#161617]/90 rounded-2xl border border-white/[0.08] hover:border-white/20 hover:bg-[#1c1c1e] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(0,0,0,0.6)] p-3 flex flex-col">
         {/* Cover Image */}
-        <div className="relative aspect-square overflow-hidden">
+        <div className="relative aspect-square rounded-xl overflow-hidden shadow-md bg-black/40">
           <Link to={`/track/${track.id}`} className="block w-full h-full" aria-label={track.title}>
             <TrackCover
               track={track}
@@ -88,72 +88,80 @@ function TrackCard({
               showBadge
             />
           </Link>
+
           {/* Overlay */}
           <div
-            className={`absolute inset-0 bg-black/40 transition-opacity duration-300 pointer-events-none ${
+            className={`absolute inset-0 bg-black/35 backdrop-blur-[1px] transition-opacity duration-300 pointer-events-none ${
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           />
-          {/* Play Button */}
+
+          {/* Floating Apple Play Button */}
           <div
             className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${
-              isHovered ? 'opacity-100' : 'opacity-0'
+              isHovered || (isCurrentTrack && isPlaying) ? 'opacity-100' : 'opacity-0'
             }`}
           >
             <Button
               size="icon"
-              className="pointer-events-auto w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg transform transition-all duration-300 hover:scale-110"
+              className="pointer-events-auto w-12 h-12 rounded-full bg-white hover:bg-[#e5e5ea] text-black shadow-xl transform transition-transform duration-200 hover:scale-110 active:scale-95"
               onClick={handlePlay}
+              aria-label="Play track"
             >
               {isCurrentTrack && isPlaying ? (
-                <div className="flex gap-0.5">
-                  <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0s' }} />
-                  <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="flex gap-1 items-center">
+                  <span className="w-1 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                  <span className="w-1 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                  <span className="w-1 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
                 </div>
               ) : (
-                <Play className="w-6 h-6 ml-1" />
+                <Play className="w-5 h-5 ml-0.5 fill-black" />
               )}
             </Button>
           </div>
+
           {/* Explicit Badge */}
           {track.isExplicit && (
-            <span className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] font-bold bg-zinc-800/80 rounded pointer-events-none">
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 text-[9px] font-bold bg-white/20 backdrop-blur-md text-white rounded-md pointer-events-none border border-white/10">
               E
             </span>
           )}
+
           {/* Duration */}
-          <span className="absolute bottom-2 right-2 px-2 py-1 text-xs bg-black/60 rounded pointer-events-none">
+          <span className="absolute bottom-2 right-2 px-2 py-0.5 text-[11px] font-mono bg-black/60 backdrop-blur-md rounded-full text-white/90 pointer-events-none border border-white/10">
             {track.durationFormatted}
           </span>
         </div>
 
         {/* Info */}
-        <div className="p-4">
-          <h3 className="font-semibold truncate">
+        <div className="pt-3 px-1 flex-1 flex flex-col justify-between">
+          <div>
+            <h3 className="font-semibold text-sm tracking-tight truncate">
+              <Link
+                to={`/track/${track.id}`}
+                className="text-[#f5f5f7] hover:text-white hover:underline transition-colors block truncate"
+              >
+                {track.title}
+              </Link>
+            </h3>
             <Link
-              to={`/track/${track.id}`}
-              className="hover:text-orange-500 transition-colors block truncate"
+              to={`/user/${track.userId}`}
+              className="text-xs text-[#86868b] hover:text-[#f5f5f7] transition-colors block truncate mt-0.5"
             >
-              {track.title}
+              {artist?.displayName}
             </Link>
-          </h3>
-          <Link
-            to={`/user/${track.userId}`}
-            className="text-sm text-muted-foreground hover:text-orange-500 transition-colors block truncate"
-          >
-            {artist?.displayName}
-          </Link>
-          <div className="flex items-center justify-between mt-3">
-            <span className="text-xs text-muted-foreground font-medium">
-              {(track.playsCount || 0).toLocaleString()} plays
+          </div>
+
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/[0.04]">
+            <span className="text-[11px] text-[#86868b] font-mono">
+              {(track.playsCount || 0).toLocaleString()} streams
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
-                size="icon"
-                className={`h-8 w-8 hover:bg-orange-500/10 active:scale-90 transition-all duration-200 ${
-                  isLiked ? 'text-rose-500' : 'text-muted-foreground'
+                size="icon-sm"
+                className={`h-7 w-7 rounded-full hover:bg-white/[0.08] active:scale-90 transition-all ${
+                  isLiked ? 'text-rose-500 hover:text-rose-400' : 'text-[#86868b] hover:text-white'
                 }`}
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
@@ -167,16 +175,16 @@ function TrackCard({
                 title={isLiked ? "Unlike" : "Like"}
               >
                 <Heart
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5"
                   fill={isLiked ? 'currentColor' : 'none'}
                 />
               </Button>
 
               <Button
                 variant="ghost"
-                size="icon"
-                className={`h-8 w-8 hover:bg-emerald-500/10 transition-all duration-200 ${
-                  isReposted ? 'text-emerald-400' : 'text-muted-foreground'
+                size="icon-sm"
+                className={`h-7 w-7 rounded-full hover:bg-white/[0.08] transition-all ${
+                  isReposted ? 'text-emerald-400' : 'text-[#86868b] hover:text-white'
                 }`}
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
@@ -191,44 +199,44 @@ function TrackCard({
                 }}
                 title={isReposted ? "Herplaatst" : "Herplaatsen"}
               >
-                <Repeat2 className="w-4 h-4" />
+                <Repeat2 className="w-3.5 h-3.5" />
               </Button>
 
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                size="icon-sm"
+                className="h-7 w-7 rounded-full text-[#86868b] hover:text-white hover:bg-white/[0.08]"
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onShare(track);
                 }}
-                title="Deel naar socials"
+                title="Delen"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-3.5 h-3.5" />
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground"
+                    size="icon-sm"
+                    className="h-7 w-7 rounded-full text-[#86868b] hover:text-white hover:bg-white/[0.08]"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MoreHorizontal className="w-4 h-4" />
+                    <MoreHorizontal className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleAddToQueue}>
-                    Add to Queue
+                <DropdownMenuContent align="end" className="bg-[#1c1c1e] border-white/10 text-white rounded-xl">
+                  <DropdownMenuItem onClick={handleAddToQueue} className="text-xs cursor-pointer">
+                    Aan wachtrij toevoegen
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)}>
+                  <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)} className="text-xs cursor-pointer">
                     Toevoegen aan afspeellijst
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onShare(track)}>
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Delen naar Socials
+                  <DropdownMenuItem onClick={() => onShare(track)} className="text-xs cursor-pointer">
+                    <Share2 className="w-3.5 h-3.5 mr-2" />
+                    Delen naar socials
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -246,21 +254,32 @@ export function TrendingTracks() {
   const trendingTracks = allTracks.length > 0 ? allTracks.slice(0, 8) : getTrendingTracks(8);
 
   return (
-    <section className="py-16 px-4 sm:px-6 lg:px-8">
+    <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-white/[0.08]">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold">Trending Now</h2>
-            <p className="text-muted-foreground mt-1">Meest beluisterde nummers deze week</p>
+            <div className="text-[11px] font-semibold text-[#fa233b] tracking-wider uppercase mb-1">
+              Top Selectie
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#f5f5f7]">
+              Trending Releases
+            </h2>
+            <p className="text-sm text-[#86868b] mt-1">
+              De meest gestreamde tracks op het platform van deze week
+            </p>
           </div>
-          <Button variant="ghost" asChild className="text-orange-400 hover:text-orange-300">
-            <Link to="/charts">Bekijk Top 20 Hitlijst →</Link>
-          </Button>
+          <Link
+            to="/charts"
+            className="text-sm text-[#2997ff] hover:underline inline-flex items-center gap-1 font-normal group"
+          >
+            <span>Bekijk Top 20 Hitlijst</span>
+            <span className="transition-transform group-hover:translate-x-0.5">›</span>
+          </Link>
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {trendingTracks.map((track, index) => (
             <TrackCard
               key={track.id}

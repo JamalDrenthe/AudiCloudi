@@ -64,59 +64,64 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background ambient spotlight */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#fa233b]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+
+      <div className="w-full max-w-md relative z-10 bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-              <Music className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#fa233b] to-[#fc3c44] flex items-center justify-center shadow-lg shadow-[#fa233b]/20">
+              <Music className="w-6 h-6 text-white" />
             </div>
           </Link>
-          <h1 className="text-2xl font-bold mt-4">Welcome back</h1>
-          <p className="text-muted-foreground mt-1">
-            Sign in to continue discovering music
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-4">Welkom terug</h1>
+          <p className="text-[#86868b] text-sm mt-1">
+            Log in met jouw CloudiAudi account
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-xs font-semibold text-[#86868b]">E-mailadres</Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="naam@cloudiaudi.nl"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
               disabled={isLoading}
+              className="h-11 bg-[#1c1c1e] border-white/[0.08] rounded-2xl text-sm focus-visible:ring-[#fa233b] placeholder:text-[#86868b]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-xs font-semibold text-[#86868b]">Wachtwoord</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
+                placeholder="Jouw wachtwoord"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 disabled={isLoading}
+                className="h-11 bg-[#1c1c1e] border-white/[0.08] rounded-2xl text-sm focus-visible:ring-[#fa233b] placeholder:text-[#86868b]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#86868b] hover:text-white transition-colors"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between text-xs pt-1">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="remember"
@@ -125,47 +130,55 @@ export function Login() {
                   setFormData({ ...formData, rememberMe: checked as boolean })
                 }
               />
-              <Label htmlFor="remember" className="text-sm font-normal">
-                Remember me
+              <Label htmlFor="remember" className="text-xs text-[#86868b] cursor-pointer">
+                Onthoud mij
               </Label>
             </div>
             <Link
               to="/forgot-password"
-              className="text-sm text-orange-500 hover:text-orange-400 transition-colors"
+              className="text-[#fa233b] hover:underline transition-colors"
             >
-              Forgot password?
+              Wachtwoord vergeten?
             </Link>
           </div>
 
           <Button
             type="submit"
-            className="w-full rounded-full bg-orange-500 hover:bg-orange-600"
+            variant="apple"
+            size="lg"
+            className="w-full h-11 font-semibold text-sm shadow-xl mt-2"
             disabled={isLoading}
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Signing in...
+                Inloggen...
               </>
             ) : (
-              'Sign in'
+              'Inloggen'
             )}
           </Button>
         </form>
 
         {/* Divider */}
-        <div className="relative my-8">
+        <div className="relative my-7">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
+            <div className="w-full border-t border-white/[0.08]" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          <div className="relative flex justify-center text-[11px] uppercase tracking-wider font-semibold">
+            <span className="bg-[#161617] px-3 text-[#86868b]">Of ga verder met</span>
           </div>
         </div>
 
         {/* Social Login */}
-        <Button variant="outline" className="w-full" disabled={isLoading} onClick={handleGoogleLogin}>
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+        <Button
+          variant="secondary"
+          size="lg"
+          className="w-full h-11 border-white/[0.08] text-xs font-semibold"
+          disabled={isLoading}
+          onClick={handleGoogleLogin}
+        >
+          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -187,15 +200,15 @@ export function Login() {
         </Button>
 
         {googleError && (
-          <div className="mt-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 text-sm space-y-2">
-            <p className="font-semibold text-orange-400">Firebase melding</p>
-            <p className="text-muted-foreground text-xs leading-relaxed">{googleError}</p>
+          <div className="mt-4 p-4 rounded-2xl bg-[#fa233b]/10 border border-[#fa233b]/20 text-xs space-y-2">
+            <p className="font-semibold text-[#fa233b]">Firebase melding</p>
+            <p className="text-[#86868b] leading-relaxed">{googleError}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="text-xs"
+                className="text-xs rounded-full"
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.hostname);
                   toast.success(`Gekopieerd: ${window.location.hostname}`);
@@ -206,7 +219,8 @@ export function Login() {
               <Button
                 type="button"
                 size="sm"
-                className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                variant="default"
+                className="text-xs rounded-full"
                 onClick={() => {
                   loginAsAdmin();
                   toast.success('Ingelogd als beheerder Jamal Drenthe');
@@ -223,7 +237,8 @@ export function Login() {
         <Button
           type="button"
           variant="secondary"
-          className="w-full mt-3 rounded-full border border-border"
+          size="lg"
+          className="w-full mt-3 h-11 rounded-full border-white/[0.08] text-xs font-semibold"
           onClick={() => {
             loginAsAdmin();
             toast.success('Ingelogd als Jamal Drenthe (Admin)');
@@ -234,19 +249,12 @@ export function Login() {
         </Button>
 
         {/* Sign up link */}
-        <p className="text-center mt-8 text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-orange-500 hover:text-orange-400 transition-colors">
-            Sign up
+        <p className="text-center mt-7 text-xs text-[#86868b]">
+          Nog geen CloudiAudi account?{' '}
+          <Link to="/register" className="text-[#fa233b] hover:underline font-semibold">
+            Maak een account aan
           </Link>
         </p>
-
-        {/* Demo credentials */}
-        <div className="mt-8 p-4 bg-card rounded-lg">
-          <p className="text-xs text-muted-foreground text-center">
-            Demo: Use any email with password "password"
-          </p>
-        </div>
       </div>
     </div>
   );

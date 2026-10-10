@@ -79,65 +79,71 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden py-12">
+      {/* Background ambient spotlight */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#fa233b]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+
+      <div className="w-full max-w-md relative z-10 bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-              <Music className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#fa233b] to-[#fc3c44] flex items-center justify-center shadow-lg shadow-[#fa233b]/20">
+              <Music className="w-6 h-6 text-white" />
             </div>
           </Link>
-          <h1 className="text-2xl font-bold mt-4">Create your account</h1>
-          <p className="text-muted-foreground mt-1">
-            Join CloudiAudi and start sharing your music
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-4">Maak een account</h1>
+          <p className="text-[#86868b] text-sm mt-1">
+            Word lid van CloudiAudi en ontdek nieuwe muziek
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-xs font-semibold text-[#86868b]">E-mailadres</Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="naam@cloudiaudi.nl"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
               disabled={isLoading}
+              className="h-11 bg-[#1c1c1e] border-white/[0.08] rounded-2xl text-sm focus-visible:ring-[#fa233b] placeholder:text-[#86868b]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username" className="text-xs font-semibold text-[#86868b]">Gebruikersnaam</Label>
             <Input
               id="username"
               type="text"
-              placeholder="Choose a username"
+              placeholder="Kies een unieke naam"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
               disabled={isLoading}
+              className="h-11 bg-[#1c1c1e] border-white/[0.08] rounded-2xl text-sm focus-visible:ring-[#fa233b] placeholder:text-[#86868b]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-xs font-semibold text-[#86868b]">Wachtwoord</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Create a password"
+                placeholder="Creëer een wachtwoord"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 disabled={isLoading}
+                className="h-11 bg-[#1c1c1e] border-white/[0.08] rounded-2xl text-sm focus-visible:ring-[#fa233b] placeholder:text-[#86868b]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#86868b] hover:text-white transition-colors"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -145,19 +151,20 @@ export function Register() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className="text-xs font-semibold text-[#86868b]">Bevestig wachtwoord</Label>
             <Input
               id="confirmPassword"
               type="password"
-              placeholder="Confirm your password"
+              placeholder="Herhaal wachtwoord"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               required
               disabled={isLoading}
+              className="h-11 bg-[#1c1c1e] border-white/[0.08] rounded-2xl text-sm focus-visible:ring-[#fa233b] placeholder:text-[#86868b]"
             />
           </div>
 
-          <div className="flex items-start space-x-2">
+          <div className="flex items-start space-x-2 pt-1">
             <Checkbox
               id="terms"
               checked={formData.agreeTerms}
@@ -165,47 +172,55 @@ export function Register() {
                 setFormData({ ...formData, agreeTerms: checked as boolean })
               }
             />
-            <Label htmlFor="terms" className="text-sm font-normal leading-tight">
-              I agree to the{' '}
-              <Link to="/terms" className="text-orange-500 hover:text-orange-400">
-                Terms of Service
+            <Label htmlFor="terms" className="text-xs font-normal text-[#86868b] leading-tight cursor-pointer">
+              Ik ga akkoord met de{' '}
+              <Link to="/terms" className="text-[#fa233b] hover:underline">
+                Algemene Voorwaarden
               </Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="text-orange-500 hover:text-orange-400">
-                Privacy Policy
+              en{' '}
+              <Link to="/privacy" className="text-[#fa233b] hover:underline">
+                Privacybeleid
               </Link>
             </Label>
           </div>
 
           <Button
             type="submit"
-            className="w-full rounded-full bg-orange-500 hover:bg-orange-600"
+            variant="apple"
+            size="lg"
+            className="w-full h-11 font-semibold text-sm shadow-xl mt-3"
             disabled={isLoading}
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating account...
+                Account aanmaken...
               </>
             ) : (
-              'Create account'
+              'Account aanmaken'
             )}
           </Button>
         </form>
 
         {/* Divider */}
-        <div className="relative my-8">
+        <div className="relative my-7">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
+            <div className="w-full border-t border-white/[0.08]" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          <div className="relative flex justify-center text-[11px] uppercase tracking-wider font-semibold">
+            <span className="bg-[#161617] px-3 text-[#86868b]">Of ga verder met</span>
           </div>
         </div>
 
         {/* Social Login */}
-        <Button variant="outline" className="w-full" disabled={isLoading} onClick={handleGoogleLogin}>
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+        <Button
+          variant="secondary"
+          size="lg"
+          className="w-full h-11 border-white/[0.08] text-xs font-semibold"
+          disabled={isLoading}
+          onClick={handleGoogleLogin}
+        >
+          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -227,15 +242,15 @@ export function Register() {
         </Button>
 
         {googleError && (
-          <div className="mt-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 text-sm space-y-2">
-            <p className="font-semibold text-orange-400">Firebase melding</p>
-            <p className="text-muted-foreground text-xs leading-relaxed">{googleError}</p>
+          <div className="mt-4 p-4 rounded-2xl bg-[#fa233b]/10 border border-[#fa233b]/20 text-xs space-y-2">
+            <p className="font-semibold text-[#fa233b]">Firebase melding</p>
+            <p className="text-[#86868b] leading-relaxed">{googleError}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="text-xs"
+                className="text-xs rounded-full"
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.hostname);
                   toast.success(`Gekopieerd: ${window.location.hostname}`);
@@ -246,7 +261,8 @@ export function Register() {
               <Button
                 type="button"
                 size="sm"
-                className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                variant="default"
+                className="text-xs rounded-full"
                 onClick={() => {
                   loginAsAdmin();
                   toast.success('Ingelogd als beheerder Jamal Drenthe');
@@ -263,7 +279,8 @@ export function Register() {
         <Button
           type="button"
           variant="secondary"
-          className="w-full mt-3 rounded-full border border-border"
+          size="lg"
+          className="w-full mt-3 h-11 rounded-full border-white/[0.08] text-xs font-semibold"
           onClick={() => {
             loginAsAdmin();
             toast.success('Ingelogd als Jamal Drenthe (Admin)');
@@ -274,10 +291,10 @@ export function Register() {
         </Button>
 
         {/* Sign in link */}
-        <p className="text-center mt-8 text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link to="/login" className="text-orange-500 hover:text-orange-400 transition-colors">
-            Sign in
+        <p className="text-center mt-7 text-xs text-[#86868b]">
+          Heb je al een account?{' '}
+          <Link to="/login" className="text-[#fa233b] hover:underline font-semibold">
+            Inloggen
           </Link>
         </p>
       </div>

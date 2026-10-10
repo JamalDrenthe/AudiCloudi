@@ -36,38 +36,34 @@ function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: num
     <div
       ref={cardRef}
       className="flex-shrink-0 w-44 opacity-0 group text-center"
-      style={{ animationDelay: `${index * 0.05}s` }}
+      style={{ animationDelay: `${index * 0.04}s` }}
     >
       <Link to={`/artist/${artist.username}`} className="block">
         <div className="relative mb-3">
-          <Avatar className="w-32 h-32 mx-auto ring-4 ring-transparent group-hover:ring-orange-500/40 transition-all duration-300">
-            <AvatarImage src={artist.avatarUrl} alt={artist.displayName} />
-            <AvatarFallback className="text-2xl font-bold">{artist.displayName[0]}</AvatarFallback>
+          <Avatar className="w-28 h-28 sm:w-32 sm:h-32 mx-auto ring-1 ring-white/15 group-hover:ring-[#fa233b]/60 group-hover:scale-105 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.6)]">
+            <AvatarImage src={artist.avatarUrl} alt={artist.displayName} className="object-cover" />
+            <AvatarFallback className="text-xl font-semibold bg-[#242426] text-white">{artist.displayName[0]}</AvatarFallback>
           </Avatar>
           {artist.labelName && (
-            <span className="absolute bottom-0 right-1/2 translate-x-8 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500 text-white shadow">
+            <span className="absolute bottom-0 right-1/2 translate-x-8 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#fa233b] text-white shadow-md uppercase tracking-wider">
               {artist.labelName}
             </span>
           )}
         </div>
-        <h3 className="font-bold text-sm truncate group-hover:text-orange-500 transition-colors">
+        <h3 className="font-semibold text-sm tracking-tight text-[#f5f5f7] truncate group-hover:text-white transition-colors">
           {artist.displayName}
         </h3>
-        <p className="text-xs text-orange-400 font-medium truncate mt-0.5">
-          {artist.genre || 'Zheavenzy Artist'}
+        <p className="text-xs text-[#86868b] font-normal truncate mt-0.5">
+          {artist.genre || 'Zheavenzy Creator'}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-[11px] text-[#6e6e73] font-mono mt-0.5">
           {artist.followersCount.toLocaleString()} volgers
         </p>
       </Link>
       <Button
-        variant={following ? "secondary" : "outline"}
+        variant={following ? "apple" : "secondary"}
         size="sm"
-        className={`mt-2.5 rounded-full w-full transition-all text-xs h-7 ${
-          following
-            ? "bg-orange-500/15 text-orange-400 border border-orange-500/30 hover:bg-orange-500/25"
-            : "hover:border-orange-500/50"
-        }`}
+        className="mt-2.5 rounded-full w-full text-xs h-7 font-medium"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -82,7 +78,7 @@ function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: num
       >
         {following ? (
           <>
-            <Check className="w-3 h-3 mr-1" />
+            <Check className="w-3 h-3 mr-1 text-black" />
             Volgend
           </>
         ) : (
@@ -97,42 +93,52 @@ function ArtistCard({ artist, index }: { artist: typeof mockUsers[0]; index: num
 }
 
 export function FeaturedArtists() {
-  // Prioritize Zheavenzy artists and prominent creators
   const featuredArtists = mockUsers.filter(u => u.id !== '6' && u.id !== 'zheavenzy').slice(0, 15);
 
   return (
-    <section className="py-16 px-4 sm:px-6 lg:px-8 bg-card border-y border-border/40">
+    <section className="py-16 px-4 sm:px-6 lg:px-8 bg-black border-t border-white/[0.08]">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold mb-2">
-              <span>Zheavenzy Records & Creators</span>
+            <div className="text-[11px] font-semibold text-[#fa233b] tracking-wider uppercase mb-1">
+              Spotlight
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold">Featured Artists</h2>
-            <p className="text-muted-foreground text-sm mt-1">Ontdek getekende Zheavenzy artiesten en hun eigen pagina's</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#f5f5f7]">
+              Uitgelichte Artiesten
+            </h2>
+            <p className="text-sm text-[#86868b] mt-1">
+              Ontdek getekende Zheavenzy makers en trending onafhankelijke producers
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="rounded-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 text-xs" asChild>
-              <Link to="/label/zheavenzy">Bekijk Zheavenzy Label</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/artists">Bekijk Alle Artiesten →</Link>
-            </Button>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/label/zheavenzy"
+              className="text-xs text-[#f5f5f7] bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.08] px-3.5 py-1.5 rounded-full transition-all"
+            >
+              Zheavenzy Label
+            </Link>
+            <Link
+              to="/artists"
+              className="text-sm text-[#2997ff] hover:underline inline-flex items-center gap-1 font-normal group"
+            >
+              <span>Alle artiesten</span>
+              <span className="transition-transform group-hover:translate-x-0.5">›</span>
+            </Link>
           </div>
         </div>
 
         {/* Horizontal Scroll */}
         <div className="relative">
-          <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+          <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
             {featuredArtists.map((artist, index) => (
               <div key={artist.id} className="snap-start">
                 <ArtistCard artist={artist} index={index} />
               </div>
             ))}
           </div>
-          {/* Fade edges */}
-          <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-card to-transparent pointer-events-none" />
+          {/* Fade edge */}
+          <div className="absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-black to-transparent pointer-events-none" />
         </div>
       </div>
     </section>

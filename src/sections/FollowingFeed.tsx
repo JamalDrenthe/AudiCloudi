@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Heart, Users, UserPlus, Check, Sparkles, Volume2, Share2, Repeat2 } from 'lucide-react';
+import { Play, Heart, UserPlus, Check, Sparkles, Volume2, Share2, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlayer } from '@/context/PlayerContext';
@@ -29,12 +29,12 @@ function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) =
 
   return (
     <div
-      className="bg-card border border-border/60 hover:border-orange-500/40 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group flex flex-col"
+      className="bg-[#161617]/90 border border-white/[0.08] hover:border-white/20 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(0,0,0,0.6)] group flex flex-col p-3"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Cover Artwork & Overlay */}
-      <div className="relative aspect-video sm:aspect-square overflow-hidden bg-muted">
+      <div className="relative aspect-square overflow-hidden rounded-xl bg-black/40 shadow-sm">
         <Link to={`/track/${track.id}`} className="block w-full h-full" aria-label={track.title}>
           <TrackCover
             track={track}
@@ -45,7 +45,7 @@ function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) =
 
         {/* Backdrop overlay on hover */}
         <div
-          className={`absolute inset-0 bg-black/40 transition-opacity duration-300 pointer-events-none ${
+          className={`absolute inset-0 bg-black/35 backdrop-blur-[1px] transition-opacity duration-300 pointer-events-none ${
             isHovered ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -58,40 +58,42 @@ function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) =
         >
           <Button
             size="icon"
-            className="pointer-events-auto w-12 h-12 rounded-full bg-orange-500 hover:bg-orange-600 shadow-xl transform transition-all duration-300 hover:scale-110 text-white"
+            className="pointer-events-auto w-12 h-12 rounded-full bg-white hover:bg-[#e5e5ea] text-black shadow-xl transform transition-transform duration-200 hover:scale-110 active:scale-95"
             onClick={handlePlay}
-            aria-label={isCurrentTrack && isPlaying ? "Pause" : "Play"}
+            aria-label={isCurrentTrack && isPlaying ? "Pauzeren" : "Afspelen"}
           >
             {isCurrentTrack && isPlaying ? (
-              <div className="flex gap-0.5 items-center justify-center">
-                <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0s' }} />
-                <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <span className="w-1 h-4 bg-white animate-bounce" style={{ animationDelay: '0.2s' }} />
+              <div className="flex gap-1 items-center justify-center">
+                <span className="w-1 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                <span className="w-1 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                <span className="w-1 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
               </div>
             ) : (
-              <Play className="w-5 h-5 ml-0.5" />
+              <Play className="w-5 h-5 ml-0.5 fill-black" />
             )}
           </Button>
         </div>
 
         {/* Duration badge */}
-        <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 text-xs font-medium bg-black/70 text-white rounded-md backdrop-blur-sm pointer-events-none">
+        <span className="absolute bottom-2 right-2 px-2 py-0.5 text-[11px] font-mono bg-black/60 backdrop-blur-md text-white/90 rounded-full border border-white/10 pointer-events-none">
           {track.durationFormatted}
         </span>
 
         {/* Genre tag */}
-        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[11px] font-medium bg-zinc-900/80 text-orange-400 rounded-md backdrop-blur-sm border border-orange-500/20 pointer-events-none">
-          {track.genre}
-        </span>
+        {track.genre && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-medium bg-white/15 text-white rounded-md backdrop-blur-md border border-white/10 pointer-events-none">
+            {track.genre}
+          </span>
+        )}
       </div>
 
       {/* Info & Creator */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      <div className="pt-3 px-1 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="font-semibold truncate text-base">
+          <h3 className="font-semibold text-sm tracking-tight truncate">
             <Link
               to={`/track/${track.id}`}
-              className="hover:text-orange-500 transition-colors block truncate"
+              className="text-[#f5f5f7] hover:text-white hover:underline transition-colors block truncate"
             >
               {track.title}
             </Link>
@@ -100,28 +102,28 @@ function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) =
           {/* Artist link with avatar */}
           <Link
             to={`/user/${track.userId}`}
-            className="flex items-center gap-2 mt-2 text-sm text-muted-foreground hover:text-foreground transition-colors group/artist"
+            className="flex items-center gap-2 mt-1.5 text-xs text-[#86868b] hover:text-white transition-colors group/artist"
           >
-            <Avatar className="w-5 h-5 ring-1 ring-border">
+            <Avatar className="w-4 h-4 ring-1 ring-white/10">
               <AvatarImage src={artist?.avatarUrl} alt={artist?.displayName} />
-              <AvatarFallback className="text-[10px]">{artist?.displayName?.[0]}</AvatarFallback>
+              <AvatarFallback className="text-[9px]">{artist?.displayName?.[0]}</AvatarFallback>
             </Avatar>
-            <span className="truncate group-hover/artist:text-orange-500 transition-colors">
+            <span className="truncate">
               {artist?.displayName}
             </span>
           </Link>
         </div>
 
         {/* Bottom row: Plays & Actions */}
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50 text-xs text-muted-foreground">
-          <span className="font-medium">{(track.playsCount || 0).toLocaleString()} plays</span>
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/[0.04] text-[11px] text-[#86868b]">
+          <span className="font-mono">{(track.playsCount || 0).toLocaleString()} streams</span>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
-              size="icon"
-              className={`h-7 w-7 hover:bg-rose-500/10 active:scale-90 transition-all duration-200 ${
-                isLiked ? 'text-rose-500' : 'text-muted-foreground'
+              size="icon-sm"
+              className={`h-7 w-7 rounded-full hover:bg-white/[0.08] active:scale-90 transition-all ${
+                isLiked ? 'text-rose-500' : 'text-[#86868b] hover:text-white'
               }`}
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -142,9 +144,9 @@ function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) =
 
             <Button
               variant="ghost"
-              size="icon"
-              className={`h-7 w-7 hover:bg-emerald-500/10 transition-all duration-200 ${
-                isReposted ? 'text-emerald-400' : 'text-muted-foreground'
+              size="icon-sm"
+              className={`h-7 w-7 rounded-full hover:bg-white/[0.08] transition-all ${
+                isReposted ? 'text-emerald-400' : 'text-[#86868b] hover:text-white'
               }`}
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -164,14 +166,14 @@ function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) =
 
             <Button
               variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              size="icon-sm"
+              className="h-7 w-7 rounded-full text-[#86868b] hover:text-white hover:bg-white/[0.08]"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onShare(track);
               }}
-              title="Deel naar socials"
+              title="Delen"
             >
               <Share2 className="w-3.5 h-3.5" />
             </Button>
@@ -203,30 +205,30 @@ export function FollowingFeed() {
   };
 
   return (
-    <section className="py-14 px-4 sm:px-6 lg:px-8 border-b border-border/40">
+    <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-white/[0.08] bg-black">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="p-1.5 rounded-lg bg-orange-500/10 text-orange-500">
-                <Users className="w-5 h-5" />
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-bold">Following Feed</h2>
+            <div className="text-[11px] font-semibold text-[#fa233b] tracking-wider uppercase mb-1">
+              Voor jou samengesteld
             </div>
-            <p className="text-muted-foreground text-sm">
-              Nieuwste muziek van makers die jij volgt
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#f5f5f7]">
+              Gevolgde Artiesten
+            </h2>
+            <p className="text-sm text-[#86868b] mt-1">
+              De meest recente tracks en uploads van artiesten die jij volgt
             </p>
           </div>
 
           {feedTracks.length > 0 && (
             <Button
-              variant="outline"
+              variant="apple"
               size="sm"
-              className="rounded-full border-orange-500/30 text-orange-500 hover:bg-orange-500 hover:text-white transition-all self-start sm:self-auto"
+              className="text-xs font-semibold px-4 self-start sm:self-auto"
               onClick={handlePlayAll}
             >
-              <Volume2 className="w-4 h-4 mr-1.5" />
+              <Volume2 className="w-3.5 h-3.5 mr-1.5" />
               Alles afspelen ({feedTracks.length})
             </Button>
           )}
@@ -234,7 +236,7 @@ export function FollowingFeed() {
 
         {/* Content */}
         {feedTracks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {feedTracks.map((track) => (
               <FeedTrackCard
                 key={track.id}
@@ -244,13 +246,15 @@ export function FollowingFeed() {
             ))}
           </div>
         ) : (
-          <div className="bg-card/60 border border-dashed border-border rounded-2xl p-8 sm:p-12 text-center max-w-2xl mx-auto">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-7 h-7" />
+          <div className="bg-[#161617]/70 border border-white/[0.08] rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto backdrop-blur-xl shadow-xl">
+            <div className="w-12 h-12 rounded-2xl bg-white/[0.08] text-[#fa233b] flex items-center justify-center mx-auto mb-4 border border-white/[0.08]">
+              <Sparkles className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Jouw feed is nog leeg</h3>
-            <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-              Volg artiesten en makers om hier direct hun nieuwste releases en tracks te zien verschijnen.
+            <h3 className="text-xl font-semibold tracking-tight text-white mb-2">
+              Je persoonlijke feed is leeg
+            </h3>
+            <p className="text-[#86868b] text-sm mb-6 max-w-md mx-auto">
+              Volg toonaangevende artiesten en makers om hier direct hun nieuwste releases te ontvangen.
             </p>
 
             {/* Quick follow recommendations */}
@@ -260,28 +264,24 @@ export function FollowingFeed() {
                 return (
                   <div
                     key={artist.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-background border border-border"
+                    className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-all"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      <Avatar className="w-9 h-9">
+                      <Avatar className="w-9 h-9 ring-1 ring-white/10">
                         <AvatarImage src={artist.avatarUrl} alt={artist.displayName} />
                         <AvatarFallback>{artist.displayName[0]}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className="font-medium text-xs truncate">{artist.displayName}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="font-semibold text-xs text-white truncate">{artist.displayName}</p>
+                        <p className="text-[11px] text-[#86868b] truncate font-mono">
                           {artist.followersCount.toLocaleString()} volgers
                         </p>
                       </div>
                     </div>
                     <Button
                       size="sm"
-                      variant={following ? "secondary" : "default"}
-                      className={`h-8 px-3 rounded-full text-xs shrink-0 ${
-                        following
-                          ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                          : "bg-orange-500 hover:bg-orange-600 text-white"
-                      }`}
+                      variant={following ? "secondary" : "apple"}
+                      className="h-7 px-3 rounded-full text-xs shrink-0 font-medium"
                       onClick={() => {
                         followUser(artist.id);
                         toast.success(`${artist.displayName} gevolgd!`);

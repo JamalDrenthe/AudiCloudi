@@ -415,6 +415,26 @@ export const mockUsers: User[] = [
   },
 ];
 
+// Hydrate mockUsers with any updates persisted in localStorage
+if (typeof window !== 'undefined') {
+  try {
+    const saved = localStorage.getItem('cloudiaudi_users');
+    if (saved) {
+      const parsed = JSON.parse(saved) as User[];
+      for (const p of parsed) {
+        const idx = mockUsers.findIndex((u) => u.id === p.id);
+        if (idx !== -1) {
+          mockUsers[idx] = { ...mockUsers[idx], ...p };
+        } else {
+          mockUsers.push(p);
+        }
+      }
+    }
+  } catch {
+    // Ignore
+  }
+}
+
 // Generate waveform data
 const generateWaveform = (length: number = 100): number[] => {
   return Array.from({ length }, () => Math.random() * 0.8 + 0.2);
@@ -1422,6 +1442,59 @@ export const getUserById = (id: string): User | undefined => {
       user.id.toLowerCase() === normalized ||
       user.username.toLowerCase() === normalized
   );
+};
+
+// Helper function to update a user in mockUsers and persist to localStorage
+export const updateMockUser = (userId: string, updates: Partial<User>): User | undefined => {
+  if (!userId) return undefined;
+  const normalized = userId.toLowerCase().trim();
+  const index = mockUsers.findIndex(
+    u => u.id.toLowerCase() === normalized || u.username.toLowerCase() === normalized
+  );
+  if (index === -1) return undefined;
+
+  const current = mockUsers[index];
+  const updated: User = {
+    ...current,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  mockUsers[index] = updated;
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('cloudiaudi_users', JSON.stringify(mockUsers));
+      window.dispatchEvent(new CustomEvent('cloudiaudi:users_updated', { detail: updated }));
+    } catch (e) {
+      console.warn('Could not persist users to localStorage:', e);
+    }
+  }
+  return updated;
+};
+
+// Helper function to get all users
+export const getAllUsers = (): User[] => {
+  return [...mockUsers];
+};
+
+// Helper function to delete user in mockUsers and persist
+export const deleteMockUser = (userId: string): boolean => {
+  if (!userId) return false;
+  const normalized = userId.toLowerCase().trim();
+  const index = mockUsers.findIndex(
+    u => u.id.toLowerCase() === normalized || u.username.toLowerCase() === normalized
+  );
+  if (index === -1) return false;
+  mockUsers.splice(index, 1);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('cloudiaudi_users', JSON.stringify(mockUsers));
+      window.dispatchEvent(new CustomEvent('cloudiaudi:users_updated'));
+    } catch (e) {
+      console.warn('Could not persist users after delete:', e);
+    }
+  }
+  return true;
 };
 
 // Helper function to get all artists signed to a label

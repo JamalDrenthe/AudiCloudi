@@ -4,34 +4,34 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 24 95% 53%;
+    --background: 0 0% 0%; /* Apple true OLED black */
+    --foreground: 240 6% 97%; /* Apple crisp white #f5f5f7 */
+    --card: 240 4% 9%; /* Apple #161617 */
+    --card-foreground: 240 6% 97%;
+    --popover: 240 4% 11%; /* Apple #1c1c1e */
+    --popover-foreground: 240 6% 97%;
+    --primary: 353 96% 56%; /* Apple Music vibrant red #fa233b */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4% 16%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 4% 64%;
-    --accent: 240 4% 16%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 240 4% 11%; /* Apple elevated #1c1c1e */
+    --secondary-foreground: 240 6% 97%;
+    --muted: 240 4% 11%;
+    --muted-foreground: 240 3% 54%; /* Apple #86868b */
+    --accent: 240 3% 14%; /* Apple #242426 */
+    --accent-foreground: 240 6% 97%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 24 95% 53%;
-    --radius: 0.75rem;
-    --sidebar-background: 0 0% 4%;
-    --sidebar-foreground: 240 4% 95%;
-    --sidebar-primary: 24 95% 53%;
+    --border: 240 4% 14%; /* Hairline border rgba(255,255,255,0.08) */
+    --input: 240 4% 14%;
+    --ring: 353 96% 56%;
+    --radius: 1rem;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 240 6% 97%;
+    --sidebar-primary: 353 96% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 16%;
+    --sidebar-accent: 240 4% 11%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 24 95% 53%;
+    --sidebar-border: 240 4% 14%;
+    --sidebar-ring: 353 96% 56%;
   }
 }
 
@@ -41,44 +41,64 @@
   }
   html {
     scroll-behavior: smooth;
+    background-color: #000000;
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-orange-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-[#f5f5f7] to-[#86868b];
   }
-  
+
+  .text-gradient-apple {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#fc3c44] via-[#fa233b] to-[#f92f60];
+  }
+
+  .text-gradient-silver {
+    @apply bg-clip-text text-transparent bg-gradient-to-b from-white to-[#a1a1a6];
+  }
+
   .glass {
-    @apply bg-background/80 backdrop-blur-xl;
+    @apply bg-black/75 backdrop-blur-2xl backdrop-saturate-180 border border-white/[0.08];
+  }
+
+  .glass-card {
+    @apply bg-[#161617]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)];
+  }
+
+  .glass-pill {
+    @apply bg-white/[0.08] hover:bg-white/[0.12] active:bg-white/[0.15] text-[#f5f5f7] border border-white/[0.08] backdrop-blur-md rounded-full transition-all;
   }
 
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1;
+    @apply transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-card-hover;
   }
 }
 
-/* Custom scrollbar */
+/* Apple minimalist scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* Audio player styles */
@@ -91,27 +111,27 @@
 }
 
 .waveform-bar.active {
-  @apply bg-orange-500;
+  @apply bg-[#fa233b];
 }
 
 .waveform-bar.inactive {
-  @apply bg-zinc-700;
+  @apply bg-[#2c2c2e];
 }
 
 /* Animation keyframes */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+    box-shadow: 0 0 20px rgba(250, 35, 59, 0.25);
   }
   50% {
-    box-shadow: 0 0 40px rgba(249, 115, 22, 0.5);
+    box-shadow: 0 0 35px rgba(250, 35, 59, 0.45);
   }
 }
 
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -129,11 +149,11 @@
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+  animation: pulse-glow 2.4s ease-in-out infinite;
 }
 
 .animate-slide-up {
-  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in {
@@ -146,13 +166,13 @@
     transform: scale(1);
   }
   25% {
-    transform: scale(0.78);
+    transform: scale(0.8);
   }
   50% {
-    transform: scale(1.32);
+    transform: scale(1.25);
   }
   75% {
-    transform: scale(0.94);
+    transform: scale(0.95);
   }
   100% {
     transform: scale(1);
@@ -160,18 +180,18 @@
 }
 
 .animate-heart-pop {
-  animation: heart-pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: heart-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* Stagger delays */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
-.stagger-7 { animation-delay: 0.35s; }
-.stagger-8 { animation-delay: 0.4s; }
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.08s; }
+.stagger-3 { animation-delay: 0.12s; }
+.stagger-4 { animation-delay: 0.16s; }
+.stagger-5 { animation-delay: 0.2s; }
+.stagger-6 { animation-delay: 0.24s; }
+.stagger-7 { animation-delay: 0.28s; }
+.stagger-8 { animation-delay: 0.32s; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

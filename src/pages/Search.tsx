@@ -179,38 +179,38 @@ export function Search() {
           {/* Search Header */}
           <div className="mb-6">
             <form onSubmit={handleSearch} className="relative max-w-2xl">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#86868b]" />
               <Input
                 type="search"
-                placeholder="Search for tracks, artists, playlists..."
+                placeholder="Zoek artiesten, nummers, albums en genres..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-12 py-6 text-lg bg-card border border-border/80 focus-visible:border-orange-500 shadow-sm"
+                className="pl-14 pr-12 h-14 text-base bg-[#161617] border-white/[0.08] focus-visible:ring-[#fa233b] rounded-full text-white placeholder:text-[#86868b] shadow-2xl"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-secondary rounded-full"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/[0.08] rounded-full transition-colors"
                   title="Wissen"
                 >
-                  <X className="w-5 h-5 text-muted-foreground" />
+                  <X className="w-4 h-4 text-[#86868b]" />
                 </button>
               )}
             </form>
 
             {/* Quick Recent Chips beneath the search bar */}
             {recentSearches.length > 0 && query && (
-              <div className="flex items-center gap-2 mt-3 flex-wrap text-xs">
-                <span className="text-muted-foreground flex items-center gap-1 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-orange-500" /> Recent:
+              <div className="flex items-center gap-2 mt-4 flex-wrap text-xs">
+                <span className="text-[#86868b] flex items-center gap-1 font-semibold uppercase tracking-wider text-[11px]">
+                  <Clock className="w-3 h-3 text-[#fa233b]" /> Recent:
                 </span>
                 {recentSearches.slice(0, 5).map((item) => (
                   <button
                     key={item}
                     type="button"
                     onClick={() => handleSelectRecent(item)}
-                    className="px-2.5 py-1 rounded-full bg-card hover:bg-orange-500/15 hover:text-orange-400 border border-border/80 transition-colors"
+                    className="px-3 py-1 rounded-full bg-[#161617] hover:bg-white/[0.08] hover:text-white border border-white/[0.08] text-[#86868b] transition-colors"
                   >
                     {item}
                   </button>
@@ -221,26 +221,26 @@ export function Search() {
 
           {!query ? (
             // Empty state: Show Recent Searches & Discovery
-            <div className="max-w-4xl space-y-8 py-2">
+            <div className="max-w-4xl space-y-10 py-2">
               {/* Recent Searches List */}
               {recentSearches.length > 0 ? (
-                <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-500">
+                <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 shadow-xl">
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-[#fa233b]/10 flex items-center justify-center text-[#fa233b]">
                         <Clock className="w-4 h-4" />
                       </div>
                       <div>
-                        <h2 className="font-semibold text-base">Recente zoekopdrachten</h2>
-                        <p className="text-xs text-muted-foreground">
-                          Opgeslagen in jouw profiel en browser ({recentSearches.length})
+                        <h2 className="font-bold text-white text-base tracking-tight">Recente zoekopdrachten</h2>
+                        <p className="text-xs text-[#86868b]">
+                          Opgeslagen in jouw persoonlijke profiel ({recentSearches.length})
                         </p>
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10 h-8"
+                      className="text-xs text-[#86868b] hover:text-red-400 hover:bg-white/[0.04] h-8 rounded-full"
                       onClick={handleClearAllRecent}
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1" />
@@ -253,39 +253,39 @@ export function Search() {
                       <div
                         key={item}
                         onClick={() => handleSelectRecent(item)}
-                        className="group flex items-center gap-2 pl-3.5 pr-2 py-2 rounded-xl bg-secondary/60 hover:bg-orange-500/15 hover:border-orange-500/40 border border-border/60 text-sm font-medium transition-all cursor-pointer shadow-2xs"
+                        className="group flex items-center gap-2 pl-4 pr-2.5 py-2 rounded-full bg-[#1c1c1e] hover:bg-[#242426] border border-white/[0.08] hover:border-white/[0.2] text-xs font-semibold text-[#f5f5f7] transition-all cursor-pointer"
                       >
-                        <SearchIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
-                        <span className="group-hover:text-orange-400 transition-colors">{item}</span>
+                        <SearchIcon className="w-3 h-3 text-[#86868b] group-hover:text-[#fa233b] transition-colors" />
+                        <span>{item}</span>
                         <button
                           type="button"
                           onClick={(e) => handleRemoveRecent(e, item)}
-                          className="p-1 rounded-full hover:bg-secondary text-muted-foreground hover:text-red-400 transition-colors ml-1"
+                          className="p-1 rounded-full hover:bg-white/[0.1] text-[#86868b] hover:text-red-400 transition-colors ml-1"
                           title={`Verwijder "${item}"`}
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-10 bg-card/40 rounded-2xl border border-dashed border-border p-6">
-                  <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mx-auto mb-3 text-orange-500">
-                    <Clock className="w-6 h-6" />
+                <div className="text-center py-12 bg-[#161617]/50 rounded-3xl border border-white/[0.08] p-6">
+                  <div className="w-12 h-12 rounded-full bg-[#fa233b]/10 flex items-center justify-center mx-auto mb-3 text-[#fa233b]">
+                    <Clock className="w-5 h-5" />
                   </div>
-                  <h3 className="font-semibold text-base">Nog geen recente zoekopdrachten</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <h3 className="font-bold text-white text-base tracking-tight">Nog geen recente zoekopdrachten</h3>
+                  <p className="text-xs text-[#86868b] mt-1">
                     Zoek naar artiesten, nummers of afspeellijsten om jouw zoekgeschiedenis op te bouwen.
                   </p>
                 </div>
               )}
 
               {/* Popular Tags */}
-              <div className="bg-card/50 border border-border/70 rounded-2xl p-5 sm:p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-orange-500" />
-                  <h3 className="font-semibold text-sm">Populaire zoektermen</h3>
+              <div className="bg-[#161617]/70 border border-white/[0.08] rounded-3xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-4 h-4 text-[#fa233b]" />
+                  <h3 className="font-bold text-white text-sm tracking-tight">Populaire zoektermen</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {popularTags.map((tag) => (
@@ -293,7 +293,7 @@ export function Search() {
                       key={tag}
                       type="button"
                       onClick={() => handleSelectRecent(tag)}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-secondary hover:bg-orange-500 hover:text-white transition-all shadow-xs"
+                      className="px-4 py-2 rounded-full text-xs font-semibold bg-[#1c1c1e] hover:bg-white hover:text-black border border-white/[0.08] text-[#86868b] transition-all"
                     >
                       #{tag}
                     </button>
@@ -303,23 +303,23 @@ export function Search() {
 
               {/* Browse by Genre */}
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Compass className="w-4 h-4 text-orange-500" />
-                  <h3 className="font-semibold text-base">Ontdek per genre</h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <Compass className="w-4 h-4 text-[#fa233b]" />
+                  <h3 className="font-bold text-white text-base tracking-tight">Ontdek per genre</h3>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {genres.filter((g) => g !== 'All').map((g) => (
                     <button
                       key={g}
                       type="button"
                       onClick={() => handleSelectRecent(g)}
-                      className="p-4 rounded-xl border border-border/60 bg-card hover:border-orange-500/50 hover:bg-orange-500/5 transition-all text-left group"
+                      className="p-5 rounded-3xl border border-white/[0.08] bg-[#161617]/90 hover:bg-[#1c1c1e]/90 hover:border-white/[0.2] transition-all text-left group shadow-lg"
                     >
-                      <p className="font-semibold text-sm group-hover:text-orange-500 transition-colors">
+                      <p className="font-bold text-base text-white group-hover:text-[#fa233b] transition-colors tracking-tight">
                         {g}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Bekijk nummers & artiesten
+                      <p className="text-xs text-[#86868b] mt-1">
+                        Nummers & artiesten
                       </p>
                     </button>
                   ))}
@@ -330,21 +330,21 @@ export function Search() {
             // Results
             <>
               {/* Filters */}
-              <div className="flex flex-wrap items-center gap-4 mb-6">
+              <div className="flex flex-wrap items-center gap-3 mb-6">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className={showFilters ? 'bg-orange-500/10 text-orange-500' : ''}
+                  className={`rounded-full h-9 px-4 text-xs font-semibold border-white/[0.08] ${showFilters ? 'bg-white text-black' : ''}`}
                   onClick={() => setShowFilters(!showFilters)}
                 >
-                  <Filter className="w-4 h-4 mr-2" />
+                  <Filter className="w-3.5 h-3.5 mr-2" />
                   Filters
                 </Button>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[160px] h-9 bg-[#161617] border-white/[0.08] rounded-full text-xs font-semibold text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1c1c1e] border-white/[0.08] text-white">
                     {sortOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -355,15 +355,15 @@ export function Search() {
               </div>
 
               {showFilters && (
-                <div className="flex flex-wrap gap-2 mb-6 p-4 bg-card rounded-lg">
+                <div className="flex flex-wrap gap-2 mb-6 p-4 bg-[#161617]/90 border border-white/[0.08] rounded-3xl">
                   {genres.map((genre) => (
                     <button
                       key={genre}
                       onClick={() => setSelectedGenre(genre)}
-                      className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                      className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
                         selectedGenre === genre
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-secondary hover:bg-secondary/80'
+                          ? 'bg-white text-black shadow-sm'
+                          : 'bg-[#1c1c1e] text-[#86868b] hover:text-white hover:bg-[#242426] border border-white/[0.06]'
                       }`}
                     >
                       {genre}
@@ -374,45 +374,45 @@ export function Search() {
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6">
-                  <TabsTrigger value="tracks">
-                    Tracks ({sortedTracks.length})
+                <TabsList className="mb-8 bg-[#161617] border border-white/[0.08] p-1.5 rounded-full inline-flex gap-1 h-auto">
+                  <TabsTrigger value="tracks" className="rounded-full px-5 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-[#86868b]">
+                    Nummers ({sortedTracks.length})
                   </TabsTrigger>
-                  <TabsTrigger value="artists">
-                    Artists ({users.length})
+                  <TabsTrigger value="artists" className="rounded-full px-5 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-[#86868b]">
+                    Artiesten ({users.length})
                   </TabsTrigger>
-                  <TabsTrigger value="playlists">
+                  <TabsTrigger value="playlists" className="rounded-full px-5 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-[#86868b]">
                     Playlists ({playlists.length})
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="tracks">
                   {sortedTracks.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 bg-[#161617]/70 border border-white/[0.08] rounded-3xl p-3 sm:p-4">
                       {sortedTracks.map((track, index) => {
                         const artist = getUserById(track.userId);
                         return (
                           <div
                             key={track.id}
-                            className="flex items-center gap-3 sm:gap-4 p-3 rounded-xl hover:bg-card transition-colors group"
+                            className="flex items-center gap-3 sm:gap-4 p-3 rounded-2xl hover:bg-white/[0.04] transition-colors group"
                           >
-                            <span className="w-6 text-center text-sm text-muted-foreground shrink-0">
+                            <span className="w-6 text-center text-xs font-semibold text-[#86868b] shrink-0">
                               {index + 1}
                             </span>
-                            <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-[#1c1c1e] ring-1 ring-white/[0.08]">
                               <TrackCover track={track} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <Link
                                 to={`/track/${track.id}`}
-                                className="font-semibold text-sm truncate block hover:text-orange-500 transition-colors"
+                                className="font-semibold text-sm text-[#f5f5f7] truncate block hover:text-[#fa233b] transition-colors"
                               >
                                 {track.title}
                               </Link>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                              <div className="flex items-center gap-2 text-xs text-[#86868b] truncate">
                                 <Link
                                   to={`/user/${track.userId}`}
-                                  className="hover:text-orange-500 transition-colors truncate"
+                                  className="hover:text-[#fa233b] transition-colors truncate"
                                 >
                                   {artist?.displayName || track.userName || 'Artist'}
                                 </Link>
@@ -422,9 +422,9 @@ export function Search() {
                             </div>
 
                             {/* Plays Count Badge */}
-                            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                              <Headphones className="w-3.5 h-3.5 text-orange-400" />
-                              <span className="font-medium text-foreground">
+                            <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#86868b] shrink-0">
+                              <Headphones className="w-3.5 h-3.5 text-[#fa233b]" />
+                              <span className="font-medium text-[#f5f5f7]">
                                 {(track.playsCount || 0).toLocaleString()}
                               </span>
                               <span>plays</span>
@@ -434,20 +434,20 @@ export function Search() {
                               onClick={() => playTrack(track)}
                               className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                             >
-                              <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-                                <Play className="w-4 h-4 text-white ml-0.5 fill-current" />
+                              <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-md">
+                                <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
                               </div>
                             </button>
 
                             <button
                               onClick={() => setShareTrack(track)}
-                              className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
+                              className="p-2 rounded-full text-[#86868b] hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
                               title="Deel naar socials"
                             >
                               <Share2 className="w-4 h-4" />
                             </button>
 
-                            <span className="text-xs text-muted-foreground w-12 text-right hidden sm:inline shrink-0">
+                            <span className="text-xs text-[#86868b] w-12 text-right hidden sm:inline shrink-0 font-mono">
                               {track.durationFormatted}
                             </span>
                           </div>
@@ -469,29 +469,29 @@ export function Search() {
                         return (
                           <div
                             key={artistUser.id}
-                            className="bg-card/50 border border-border/50 hover:border-orange-500/30 rounded-2xl p-4 text-center group flex flex-col justify-between transition-all hover:-translate-y-1"
+                            className="bg-[#161617]/90 border border-white/[0.08] hover:border-white/[0.2] rounded-3xl p-5 text-center group flex flex-col justify-between transition-all hover:-translate-y-1 shadow-lg"
                           >
                             <Link to={`/user/${artistUser.id}`} className="block">
-                              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 ring-4 ring-transparent group-hover:ring-orange-500/30 transition-all">
+                              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 ring-4 ring-white/[0.08] group-hover:ring-[#fa233b]/40 transition-all shadow-xl">
                                 <AvatarImage src={artistUser.avatarUrl} alt={artistUser.displayName} />
-                                <AvatarFallback>{artistUser.displayName[0]}</AvatarFallback>
+                                <AvatarFallback className="bg-[#242426] text-white font-bold">{artistUser.displayName[0]}</AvatarFallback>
                               </Avatar>
-                              <h3 className="font-semibold text-sm group-hover:text-orange-500 transition-colors truncate">
+                              <h3 className="font-semibold text-sm text-[#f5f5f7] group-hover:text-[#fa233b] transition-colors truncate">
                                 {artistUser.displayName}
                               </h3>
-                              <p className="text-xs text-muted-foreground mt-0.5">
+                              <p className="text-xs text-[#86868b] mt-0.5">
                                 {(artistUser.followersCount || 0).toLocaleString()} volgers
                               </p>
                             </Link>
 
-                            <div className="mt-3">
+                            <div className="mt-4">
                               <Button
                                 size="sm"
-                                variant={isFollowed ? "secondary" : "default"}
-                                className={`w-full h-8 rounded-full text-xs font-medium ${
+                                variant={isFollowed ? "secondary" : "apple"}
+                                className={`w-full h-8 rounded-full text-xs font-semibold ${
                                   isFollowed
-                                    ? "bg-secondary text-muted-foreground"
-                                    : "bg-orange-500 hover:bg-orange-600 text-white"
+                                    ? "bg-white/[0.1] text-white border-white/[0.15]"
+                                    : "shadow-sm"
                                 }`}
                                 onClick={() => {
                                   if (!isAuthenticated) {
@@ -509,7 +509,7 @@ export function Search() {
                               >
                                 {isFollowed ? (
                                   <>
-                                    <UserCheck className="w-3.5 h-3.5 mr-1" />
+                                    <UserCheck className="w-3.5 h-3.5 mr-1 text-[#fa233b]" />
                                     Volgend
                                   </>
                                 ) : (
@@ -525,8 +525,8 @@ export function Search() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">No artists found</p>
+                    <div className="text-center py-16 bg-[#161617]/50 rounded-3xl border border-white/[0.08]">
+                      <p className="text-sm text-[#86868b]">Geen artiesten gevonden</p>
                     </div>
                   )}
                 </TabsContent>
@@ -538,27 +538,27 @@ export function Search() {
                         <Link
                           key={playlist.id}
                           to={`/playlist/${playlist.id}`}
-                          className="group"
+                          className="group bg-[#161617]/90 border border-white/[0.08] hover:border-white/[0.2] rounded-3xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl block"
                         >
-                          <div className="aspect-square rounded-xl overflow-hidden mb-3 bg-muted">
+                          <div className="aspect-square rounded-2xl overflow-hidden mb-3.5 bg-[#1c1c1e]">
                             <TrackCover
                               playlist={playlist}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               showBadge
                             />
                           </div>
-                          <h3 className="font-medium group-hover:text-orange-500 transition-colors">
+                          <h3 className="font-semibold text-base text-white group-hover:text-[#fa233b] transition-colors truncate">
                             {playlist.title}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-[#86868b] mt-0.5">
                             {playlist.tracksCount} tracks
                           </p>
                         </Link>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">No playlists found</p>
+                    <div className="text-center py-16 bg-[#161617]/50 rounded-3xl border border-white/[0.08]">
+                      <p className="text-sm text-[#86868b]">Geen afspeellijsten gevonden</p>
                     </div>
                   )}
                 </TabsContent>

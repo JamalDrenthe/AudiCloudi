@@ -103,11 +103,11 @@ export function AudioPlayer() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-background via-card to-card border-t border-border">
-      {/* Progress Bar */}
-      <div className="group relative h-1 bg-secondary cursor-pointer">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#161617]/92 backdrop-blur-2xl backdrop-saturate-180 border-t border-white/[0.08] shadow-[0_-12px_40px_rgba(0,0,0,0.85)]">
+      {/* Apple Thin Hairline Scrubber */}
+      <div className="group relative h-1 hover:h-2 bg-white/[0.06] cursor-pointer transition-all duration-150">
         <div
-          className="absolute h-full bg-orange-500 transition-all"
+          className="absolute h-full bg-[#fa233b] transition-all"
           style={{ width: `${progress * 100}%` }}
         />
         <input
@@ -118,15 +118,13 @@ export function AudioPlayer() {
           onChange={(e) => seek(Number(e.target.value))}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
-        {/* Hover preview */}
-        <div className="absolute bottom-full left-0 right-0 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
       {/* Expanded Studio Waveform Visualizer */}
       {showExpandedWaveform && (
-        <div className="px-4 sm:px-6 lg:px-8 py-3 bg-card/95 border-b border-border backdrop-blur">
+        <div className="px-4 sm:px-6 lg:px-8 py-3 bg-[#1c1c1e]/95 border-b border-white/[0.08] backdrop-blur-2xl">
           <div className="max-w-7xl mx-auto flex items-center gap-4">
-            <span className="text-xs font-mono text-muted-foreground w-12 text-right">
+            <span className="text-[11px] font-mono text-[#86868b] w-12 text-right">
               {formatTime(currentTime)}
             </span>
             <div className="flex-1">
@@ -137,41 +135,41 @@ export function AudioPlayer() {
                 isPlaying={isPlaying}
                 onSeek={seek}
                 variant="hero"
-                className="h-16"
+                className="h-14"
               />
             </div>
-            <span className="text-xs font-mono text-muted-foreground w-12">
+            <span className="text-[11px] font-mono text-[#86868b] w-12">
               {formatTime(duration)}
             </span>
           </div>
         </div>
       )}
 
-      <div className="h-20 px-4 sm:px-6 lg:px-8">
+      <div className="h-16 sm:h-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between gap-4">
-          {/* Track Info */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-black/40">
+          {/* Left: Track Info */}
+          <div className="flex items-center gap-3.5 flex-1 min-w-0">
+            <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-white/10 shadow-md bg-black/50">
               <TrackCover track={currentTrack} />
             </div>
             <div className="min-w-0">
               <Link
                 to={`/track/${currentTrack.id}`}
-                className="text-sm font-medium truncate hover:text-orange-500 transition-colors block"
+                className="text-xs sm:text-sm font-semibold tracking-tight text-[#f5f5f7] truncate hover:underline block"
               >
                 {currentTrack.title}
               </Link>
               <Link
                 to={`/user/${currentTrack.userId}`}
-                className="text-xs text-muted-foreground truncate hover:text-orange-500 transition-colors block"
+                className="text-[11px] sm:text-xs text-[#86868b] truncate hover:text-white transition-colors block mt-0.5"
               >
                 {trackUser?.displayName}
               </Link>
             </div>
             <Button
               variant="ghost"
-              size="icon"
-              className="flex-shrink-0 hover:bg-orange-500/10 active:scale-90 transition-all duration-200"
+              size="icon-sm"
+              className="flex-shrink-0 hover:bg-white/[0.08] active:scale-90 transition-all rounded-full"
               onClick={() => {
                 const nextLiked = !isLiked;
                 setIsLiked(nextLiked);
@@ -185,56 +183,73 @@ export function AudioPlayer() {
                 onAnimationEnd={() => setIsLikeAnimating(false)}
                 className={`w-4 h-4 transition-all duration-300 ease-out ${
                   isLiked
-                    ? 'fill-orange-500 text-orange-500'
-                    : 'text-muted-foreground hover:text-orange-400'
+                    ? 'fill-[#fa233b] text-[#fa233b]'
+                    : 'text-[#86868b] hover:text-white'
                 } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
               />
             </Button>
           </div>
 
-          {/* Controls */}
+          {/* Center: Apple Controls */}
           <div className="flex flex-col items-center gap-1 flex-1 max-w-md">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 variant="ghost"
-                size="icon"
-                className={`h-8 w-8 ${isShuffled ? 'text-orange-500' : ''}`}
+                size="icon-sm"
+                className={`h-7 w-7 rounded-full ${isShuffled ? 'text-[#fa233b]' : 'text-[#86868b] hover:text-white'}`}
                 onClick={toggleShuffle}
+                title="Shuffle"
               >
-                <Shuffle className="w-4 h-4" />
+                <Shuffle className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={previousTrack}>
-                <SkipBack className="w-5 h-5" />
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-8 w-8 rounded-full text-[#86868b] hover:text-white"
+                onClick={previousTrack}
+                title="Vorige track"
+              >
+                <SkipBack className="w-4 h-4" />
               </Button>
               <Button
                 size="icon"
-                className="h-10 w-10 rounded-full bg-orange-500 hover:bg-orange-600"
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white hover:bg-[#e5e5ea] text-black shadow-md active:scale-95 transition-all"
                 onClick={togglePlay}
+                title={isPlaying ? "Pauzeren" : "Afspelen"}
               >
                 {isPlaying ? (
-                  <Pause className="w-5 h-5" />
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-black" />
                 ) : (
-                  <Play className="w-5 h-5 ml-0.5" />
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-black ml-0.5" />
                 )}
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextTrack}>
-                <SkipForward className="w-5 h-5" />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className={`h-8 w-8 ${repeatMode !== 'none' ? 'text-orange-500' : ''}`}
+                size="icon-sm"
+                className="h-8 w-8 rounded-full text-[#86868b] hover:text-white"
+                onClick={nextTrack}
+                title="Volgende track"
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className={`h-7 w-7 rounded-full ${repeatMode !== 'none' ? 'text-[#fa233b]' : 'text-[#86868b] hover:text-white'}`}
                 onClick={toggleRepeat}
+                title="Herhalen"
               >
                 {repeatMode === 'one' ? (
-                  <Repeat1 className="w-4 h-4" />
+                  <Repeat1 className="w-3.5 h-3.5" />
                 ) : (
-                  <Repeat className="w-4 h-4" />
+                  <Repeat className="w-3.5 h-3.5" />
                 )}
               </Button>
             </div>
-            <div className="flex items-center gap-2 w-full">
-              <span className="text-xs text-muted-foreground w-10 text-right">
+            
+            {/* Scrubber row with waveform */}
+            <div className="flex items-center gap-2.5 w-full">
+              <span className="text-[10px] font-mono text-[#86868b] w-8 text-right">
                 {formatTime(currentTime)}
               </span>
               <div className="flex-1 px-1">
@@ -245,64 +260,73 @@ export function AudioPlayer() {
                   isPlaying={isPlaying}
                   onSeek={seek}
                   variant="player"
-                  className="h-6"
+                  className="h-5"
                 />
               </div>
-              <span className="text-xs text-muted-foreground w-10">
+              <span className="text-[10px] font-mono text-[#86868b] w-8">
                 {formatTime(duration)}
               </span>
             </div>
           </div>
 
-          {/* Volume & Queue */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-8 w-8 ${showExpandedWaveform ? 'text-orange-500 bg-orange-500/10' : 'text-muted-foreground hover:text-foreground'}`}
+          {/* Right: Volume & Queue */}
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end">
+            {/* Lossless indicator / Visualizer toggle */}
+            <button
               onClick={() => setShowExpandedWaveform((prev) => !prev)}
-              title={showExpandedWaveform ? "Verberg visualizer" : "Toon visualizer"}
+              className={`hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all border ${
+                showExpandedWaveform
+                  ? 'bg-[#fa233b]/15 text-[#fa233b] border-[#fa233b]/30'
+                  : 'bg-white/[0.04] text-[#86868b] hover:text-white border-white/[0.08]'
+              }`}
+              title="Studio visualizer toggle"
             >
-              <Activity className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleMute}>
-              {isMuted || volume === 0 ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
-            </Button>
-            <Slider
-              value={[isMuted ? 0 : volume * 100]}
-              max={100}
-              step={1}
-              className="w-24 hidden sm:flex"
-              onValueChange={(value) => setVolume(value[0] / 100)}
-            />
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownload}>
-              <Download className="w-4 h-4" />
+              <Activity className="w-3 h-3" />
+              <span>Lossless</span>
+            </button>
+
+            {/* Volume control */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <Button variant="ghost" size="icon-sm" className="h-7 w-7 rounded-full text-[#86868b] hover:text-white" onClick={toggleMute}>
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="w-3.5 h-3.5" />
+                ) : (
+                  <Volume2 className="w-3.5 h-3.5" />
+                )}
+              </Button>
+              <Slider
+                value={[isMuted ? 0 : volume * 100]}
+                max={100}
+                step={1}
+                className="w-20 hidden lg:flex"
+                onValueChange={(value) => setVolume(value[0] / 100)}
+              />
+            </div>
+
+            <Button variant="ghost" size="icon-sm" className="h-7 w-7 rounded-full text-[#86868b] hover:text-white" onClick={handleDownload} title="Download track">
+              <Download className="w-3.5 h-3.5" />
             </Button>
 
             {/* Queue Sheet */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 relative">
+                <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-full text-[#86868b] hover:text-white relative" title="Afspeelwachtrij">
                   <ListMusic className="w-4 h-4" />
                   {queue.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 text-[10px] rounded-full flex items-center justify-center">
+                    <span className="absolute 0 top-0.5 right-0.5 w-3.5 h-3.5 bg-[#fa233b] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                       {queue.length}
                     </span>
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-md">
+              <SheetContent className="w-full sm:max-w-md bg-[#161617]/95 backdrop-blur-2xl border-l border-white/10 text-white">
                 <SheetHeader>
-                  <SheetTitle>Queue</SheetTitle>
+                  <SheetTitle className="text-white text-lg font-semibold tracking-tight">Afspeelwachtrij</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4 space-y-2">
                   {queue.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Your queue is empty
+                    <p className="text-center text-[#86868b] py-8 text-sm">
+                      De afspeelwachtrij is leeg
                     </p>
                   ) : (
                     queue.map((track, index) => {
@@ -310,29 +334,32 @@ export function AudioPlayer() {
                       return (
                         <div
                           key={`${track.id}-${index}`}
-                          className={`flex items-center gap-3 p-2 rounded-lg ${
-                            index === queueIndex ? 'bg-orange-500/10' : 'hover:bg-secondary'
+                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
+                            index === queueIndex
+                              ? 'bg-white/[0.08] border-[#fa233b]/40 text-white'
+                              : 'bg-white/[0.02] border-transparent hover:bg-white/[0.05]'
                           }`}
                         >
-                          <div className="h-10 w-10 rounded overflow-hidden flex-shrink-0 border border-white/10 bg-black/40">
+                          <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10 bg-black/40">
                             <TrackCover track={track} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium truncate ${
-                              index === queueIndex ? 'text-orange-500' : ''
+                            <p className={`text-xs font-semibold truncate ${
+                              index === queueIndex ? 'text-[#fa233b]' : 'text-white'
                             }`}>
                               {track.title}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-[11px] text-[#86868b] truncate">
                               {queueTrackUser?.displayName}
                             </p>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="text-xs h-7 text-[#86868b] hover:text-white rounded-full"
                             onClick={() => removeFromQueue(index)}
                           >
-                            Remove
+                            Verwijder
                           </Button>
                         </div>
                       );

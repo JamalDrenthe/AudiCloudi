@@ -22,7 +22,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -566,49 +565,50 @@ export function Upload() {
 
       <main className="pt-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Upload & Release</h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#fa233b] mb-1">Studio Upload</p>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">Upload & Release</h1>
+              <p className="text-[#86868b] text-sm mt-1">
                 Upload één of meerdere tracks tegelijk, voeg video canvas artwork toe en maak direct een album of afspeellijst.
               </p>
             </div>
             {/* Credit Pill */}
             <Link
               to="/pricing"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary border border-border hover:border-orange-500/50 transition-colors text-xs"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#161617] border border-white/[0.08] hover:border-white/[0.2] transition-colors text-xs font-semibold self-start sm:self-auto"
             >
-              <Coins className="w-4 h-4 text-orange-400" />
-              <span>
-                Saldo: <strong className="text-orange-400">{userCurrentCredits.toLocaleString()}</strong> credits
+              <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[#86868b]">
+                Saldo: <strong className="text-white">{(userCurrentCredits).toLocaleString()}</strong> credits
               </span>
             </Link>
           </div>
 
           {/* User Tier Restriction Banner */}
           {isGebruiker && (
-            <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="mt-4 p-5 rounded-3xl bg-[#fa233b]/10 border border-[#fa233b]/20 flex items-start gap-3.5">
+              <AlertTriangle className="w-5 h-5 text-[#fa233b] flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-semibold text-red-200">Uploaden niet toegestaan voor 'Gebruiker'</p>
-                <p className="text-red-300/80 mt-0.5">
-                  Met een 'Gebruiker' abonnement (€10,- p/m) kun je alleen streamen. Upgrade naar <strong>Artiest</strong> (€50,- p/m, 10 tracks) of <strong>Label</strong> (€200,- p/m, 50 tracks) om muziek uit te brengen.
+                <p className="font-semibold text-white">Uploaden niet toegestaan voor 'Gebruiker'</p>
+                <p className="text-[#86868b] mt-0.5 text-xs leading-relaxed">
+                  Met een 'Gebruiker' lidmaatschap (€10,- p/m) kun je alleen streamen. Upgrade naar <strong>Artiest</strong> (€50,- p/m, 10 tracks) of <strong>Label</strong> (€200,- p/m, 50 tracks) om muziek uit te brengen.
                 </p>
-                <Button asChild size="sm" className="mt-3 bg-red-600 hover:bg-red-700 text-white rounded-lg">
-                  <Link to="/pricing">Bekijk Prijzen & Upgrade</Link>
+                <Button asChild size="sm" variant="apple" className="mt-3 rounded-full text-xs font-semibold h-8 px-4">
+                  <Link to="/pricing">Bekijk Lidmaatschappen</Link>
                 </Button>
               </div>
             </div>
           )}
 
           {!isGebruiker && (
-            <div className="mt-4 px-4 py-2.5 rounded-xl bg-secondary/50 border border-border text-xs flex items-center justify-between">
-              <span className="text-muted-foreground">
-                Abonnement: <strong className="text-foreground capitalize">{plan || 'Artiest'}</strong> ({monthlyUploadsLimit} uploads/mnd)
+            <div className="mt-4 px-4 py-2.5 rounded-full bg-[#161617] border border-white/[0.08] text-xs flex items-center justify-between">
+              <span className="text-[#86868b]">
+                Lidmaatschap: <strong className="text-white capitalize">{plan || 'Artiest'}</strong> ({monthlyUploadsLimit} uploads/mnd)
               </span>
-              <span className="text-muted-foreground font-mono">
-                Releases deze maand: <strong className="text-foreground">{monthlyUploadsCount || 0}</strong> / {monthlyUploadsLimit}
+              <span className="text-[#86868b] font-mono">
+                Releases deze maand: <strong className="text-white">{monthlyUploadsCount || 0}</strong> / {monthlyUploadsLimit}
               </span>
             </div>
           )}
@@ -616,18 +616,18 @@ export function Upload() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Audio Upload Box (Supports Multiple) */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8">
+          <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <Label className="text-lg font-bold">Audiobestanden *</Label>
-                <p className="text-xs text-muted-foreground">
+                <Label className="text-base font-bold text-white tracking-tight">Audiobestanden *</Label>
+                <p className="text-xs text-[#86868b] mt-0.5">
                   Selecteer één of meerdere tracks tegelijk (MP3, WAV, FLAC, M4A)
                 </p>
               </div>
               {trackQueue.length > 0 && (
-                <Badge variant="outline" className="text-orange-400 border-orange-500/40">
+                <span className="text-xs font-semibold text-[#fa233b] bg-[#fa233b]/10 border border-[#fa233b]/20 px-3 py-1 rounded-full">
                   {trackQueue.length} track(s) geselecteerd
-                </Badge>
+                </span>
               )}
             </div>
 
@@ -636,7 +636,7 @@ export function Upload() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleAudioDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border hover:border-orange-500/50 hover:bg-orange-500/5 transition-all rounded-xl p-8 text-center cursor-pointer group"
+              className="border-2 border-dashed border-white/[0.1] hover:border-white/[0.3] hover:bg-white/[0.02] transition-all rounded-2xl p-8 text-center cursor-pointer group"
             >
               <input
                 ref={fileInputRef}
@@ -646,13 +646,13 @@ export function Upload() {
                 onChange={handleAudioSelect}
                 className="hidden"
               />
-              <div className="w-14 h-14 rounded-full bg-secondary group-hover:bg-orange-500/10 flex items-center justify-center mx-auto mb-3 transition-colors">
-                <UploadCloud className="w-7 h-7 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+              <div className="w-14 h-14 rounded-full bg-white/[0.06] group-hover:bg-[#fa233b]/10 flex items-center justify-center mx-auto mb-3 transition-colors">
+                <UploadCloud className="w-6 h-6 text-[#86868b] group-hover:text-[#fa233b] transition-colors" />
               </div>
-              <p className="text-sm font-semibold">
+              <p className="text-sm font-semibold text-white">
                 Sleep audiobestanden hierheen of klik om te bladeren
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-[#86868b] mt-1">
                 Ondersteunt meerdere bestanden tegelijkertijd
               </p>
             </div>
@@ -750,18 +750,18 @@ export function Upload() {
           </div>
 
           {/* Cover Art & Video Canvas Section */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8">
+          <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <Label className="text-lg font-bold">Cover Artwork & Video Canvas</Label>
-                <p className="text-xs text-muted-foreground">
+                <Label className="text-base font-bold text-white tracking-tight">Cover Artwork & Video Canvas</Label>
+                <p className="text-xs text-[#86868b] mt-0.5">
                   Upload een afbeelding (JPG, PNG) óf een korte video loop (MP4, max 1 minuut)
                 </p>
               </div>
-              <Badge variant="outline" className="text-xs flex items-center gap-1">
-                <Video className="w-3 h-3 text-orange-400" />
+              <span className="text-xs font-semibold flex items-center gap-1 text-[#fa233b] bg-[#fa233b]/10 border border-[#fa233b]/20 px-3 py-1 rounded-full">
+                <Video className="w-3.5 h-3.5" />
                 MP4 Canvas toegestaan (max 60s)
-              </Badge>
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
@@ -770,7 +770,7 @@ export function Upload() {
                 onClick={() => coverInputRef.current?.click()}
                 onDrop={handleCoverDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="relative aspect-square w-full rounded-xl overflow-hidden border border-border bg-secondary/50 flex items-center justify-center group shadow-md cursor-pointer hover:border-orange-500/50 transition-colors"
+                className="relative aspect-square w-full rounded-2xl overflow-hidden border border-white/[0.1] bg-[#1c1c1e] flex items-center justify-center group shadow-md cursor-pointer hover:border-white/[0.3] transition-colors"
               >
                 {coverType === 'video' && coverVideoUrl ? (
                   <video
@@ -789,8 +789,8 @@ export function Upload() {
                   />
                 ) : (
                   <div className="text-center p-4">
-                    <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-50 group-hover:text-orange-400 group-hover:opacity-100 transition-all" />
-                    <span className="text-xs text-muted-foreground block group-hover:text-foreground">
+                    <ImageIcon className="w-10 h-10 text-[#86868b] mx-auto mb-2 opacity-50 group-hover:text-[#fa233b] group-hover:opacity-100 transition-all" />
+                    <span className="text-xs text-[#86868b] block group-hover:text-white">
                       Klik of sleep artwork hierheen
                     </span>
                   </div>
@@ -798,7 +798,7 @@ export function Upload() {
 
                 {/* Overlay Badge */}
                 {coverType === 'video' && coverVideoUrl && (
-                  <span className="absolute bottom-2 left-2 px-2 py-0.5 text-[11px] font-bold bg-black/80 text-orange-400 rounded border border-orange-500/30">
+                  <span className="absolute bottom-2 left-2 px-2.5 py-0.5 text-[10px] font-bold bg-black/80 text-[#fa233b] rounded-full border border-[#fa233b]/30 backdrop-blur-md">
                     MP4 CANVAS ({videoDuration}s)
                   </span>
                 )}
@@ -825,7 +825,7 @@ export function Upload() {
                   onClick={() => coverInputRef.current?.click()}
                   onDrop={handleCoverDrop}
                   onDragOver={(e) => e.preventDefault()}
-                  className="border-2 border-dashed border-border hover:border-orange-500/50 rounded-xl p-6 text-center cursor-pointer hover:bg-orange-500/5 transition-all group"
+                  className="border-2 border-dashed border-white/[0.1] hover:border-white/[0.3] rounded-2xl p-6 text-center cursor-pointer hover:bg-white/[0.02] transition-all group"
                 >
                   <input
                     ref={coverInputRef}
@@ -834,28 +834,28 @@ export function Upload() {
                     onChange={handleCoverSelect}
                     className="hidden"
                   />
-                  <div className="flex items-center justify-center gap-3 text-sm font-semibold mb-1">
-                    <ImageIcon className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
+                  <div className="flex items-center justify-center gap-3 text-sm font-semibold mb-1 text-white">
+                    <ImageIcon className="w-4 h-4 text-[#fa233b] group-hover:scale-110 transition-transform" />
                     <span>Afbeelding</span>
-                    <span className="text-muted-foreground">of</span>
-                    <Video className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[#86868b]">of</span>
+                    <Video className="w-4 h-4 text-[#fa233b] group-hover:scale-110 transition-transform" />
                     <span>Korte MP4 Video</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-3">
+                  <p className="text-xs text-[#86868b] mb-3">
                     Klik of sleep een cover artwork of canvas video (max. 1 minuut) hierheen.
                   </p>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="text-xs rounded-lg pointer-events-none group-hover:bg-orange-500 group-hover:text-white transition-colors"
+                    className="text-xs rounded-full pointer-events-none group-hover:bg-white group-hover:text-black transition-colors"
                   >
                     Bestand selecteren...
                   </Button>
                 </div>
 
-                <div className="text-xs text-muted-foreground space-y-1 bg-secondary/40 p-3 rounded-lg border border-border/50">
-                  <p className="font-semibold text-foreground">Aanbevolen formaten:</p>
+                <div className="text-xs text-[#86868b] space-y-1 bg-[#1c1c1e]/60 p-3.5 rounded-2xl border border-white/[0.06]">
+                  <p className="font-semibold text-white">Aanbevolen formaten:</p>
                   <p>• <strong>Afbeelding:</strong> 1000x1000px JPG/PNG (1:1 verhouding)</p>
                   <p>• <strong>Video Canvas:</strong> MP4 (H.264), maximaal 60 seconden, wordt geloopt in de audiospeler</p>
                 </div>
@@ -864,11 +864,11 @@ export function Upload() {
           </div>
 
           {/* Album & Playlist Creation During Upload */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8">
+          <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-lg font-bold">Album of Afspeellijst Aanmaken</Label>
-                <p className="text-xs text-muted-foreground">
+                <Label className="text-base font-bold text-white tracking-tight">Album of Afspeellijst Aanmaken</Label>
+                <p className="text-xs text-[#86868b] mt-0.5">
                   Groepeer deze upload direct in een officieel Album of Afspeellijst
                 </p>
               </div>
@@ -879,51 +879,47 @@ export function Upload() {
             </div>
 
             {createCollection && (
-              <div className="mt-6 pt-6 border-t border-border space-y-5">
+              <div className="mt-6 pt-6 border-t border-white/[0.06] space-y-5">
                 {/* Collection Type Selector */}
                 <div className="flex items-center gap-3">
                   <Button
                     type="button"
-                    variant={collectionType === 'album' ? 'default' : 'outline'}
+                    variant={collectionType === 'album' ? 'apple' : 'secondary'}
                     onClick={() => setCollectionType('album')}
-                    className={`rounded-xl text-xs font-semibold ${
-                      collectionType === 'album' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''
-                    }`}
+                    className="rounded-full text-xs font-semibold h-9 px-4"
                   >
-                    <Disc className="w-4 h-4 mr-1.5" />
+                    <Disc className="w-3.5 h-3.5 mr-1.5" />
                     Album
                   </Button>
                   <Button
                     type="button"
-                    variant={collectionType === 'playlist' ? 'default' : 'outline'}
+                    variant={collectionType === 'playlist' ? 'apple' : 'secondary'}
                     onClick={() => setCollectionType('playlist')}
-                    className={`rounded-xl text-xs font-semibold ${
-                      collectionType === 'playlist' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''
-                    }`}
+                    className="rounded-full text-xs font-semibold h-9 px-4"
                   >
-                    <ListPlus className="w-4 h-4 mr-1.5" />
+                    <ListPlus className="w-3.5 h-3.5 mr-1.5" />
                     Afspeellijst
                   </Button>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-semibold">Titel van {collectionType === 'album' ? 'het Album' : 'de Afspeellijst'} *</Label>
+                  <Label className="text-xs font-semibold text-[#86868b]">Titel van {collectionType === 'album' ? 'het Album' : 'de Afspeellijst'} *</Label>
                   <Input
                     value={collectionTitle}
                     onChange={(e) => setCollectionTitle(e.target.value)}
                     placeholder={collectionType === 'album' ? 'Bijv. Night Odyssey LP' : 'Bijv. Zomer 2026 Vibes'}
-                    className="mt-1.5"
+                    className="mt-1.5 bg-[#1c1c1e] border-white/[0.08] rounded-xl text-sm"
                     required={createCollection}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-sm font-semibold">Beschrijving (optioneel)</Label>
+                  <Label className="text-xs font-semibold text-[#86868b]">Beschrijving (optioneel)</Label>
                   <Textarea
                     value={collectionDescription}
                     onChange={(e) => setCollectionDescription(e.target.value)}
                     placeholder="Vertel iets over dit album of deze afspeellijst..."
-                    className="mt-1.5 resize-none h-20"
+                    className="mt-1.5 resize-none h-20 bg-[#1c1c1e] border-white/[0.08] rounded-xl text-sm"
                   />
                 </div>
               </div>
@@ -931,20 +927,20 @@ export function Upload() {
           </div>
 
           {/* Mixing, Mastering & Distribution Requirement */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-4">
+          <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-lg font-bold flex items-center gap-2">
+                <Label className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  Mix & Mastering & Streaming Distributie
+                  Mix & Mastering & Distributie
                 </Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-[#86868b] mt-0.5">
                   Voor gratis distributie op alle grote streaming platforms moet een track professioneel gemixt en gemastered zijn.
                 </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-secondary/50 border border-border space-y-3">
+            <div className="p-4 rounded-2xl bg-[#1c1c1e]/70 border border-white/[0.08] space-y-3">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -953,32 +949,32 @@ export function Upload() {
                     setIsAlreadyMastered(e.target.checked);
                     if (e.target.checked) setRequestMastering(false);
                   }}
-                  className="mt-1 w-4 h-4 text-orange-500 rounded border-border"
+                  className="mt-1 w-4 h-4 text-[#fa233b] rounded border-white/[0.2]"
                 />
                 <div className="text-xs">
-                  <p className="font-semibold text-foreground">
+                  <p className="font-semibold text-white">
                     ✅ Dit audiobestand is al gemixt en gemastered
                   </p>
-                  <p className="text-muted-foreground mt-0.5">
+                  <p className="text-[#86868b] mt-0.5">
                     Je track voldoet aan de streaming standaarden (-14 LUFS). Wereldwijde distributie is <strong>gratis inbegrepen</strong>.
                   </p>
                 </div>
               </label>
 
               {!isAlreadyMastered && (
-                <label className="flex items-start gap-3 cursor-pointer pt-3 border-t border-border/50">
+                <label className="flex items-start gap-3 cursor-pointer pt-3 border-t border-white/[0.06]">
                   <input
                     type="checkbox"
                     checked={requestMastering}
                     onChange={(e) => setRequestMastering(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-orange-500 rounded border-border"
+                    className="mt-1 w-4 h-4 text-[#fa233b] rounded border-white/[0.2]"
                   />
                   <div className="text-xs">
-                    <p className="font-semibold text-orange-400 flex items-center gap-1.5">
+                    <p className="font-semibold text-[#fa233b] flex items-center gap-1.5">
                       <Sliders className="w-3.5 h-3.5" />
                       Studio Mix & Mastering aanvragen (+50.000 credits per track)
                     </p>
-                    <p className="text-muted-foreground mt-0.5">
+                    <p className="text-[#86868b] mt-0.5">
                       Ons studioteam mixt en mastert je track voor optimale club- en streamingkwaliteit.
                     </p>
                   </div>
@@ -988,17 +984,17 @@ export function Upload() {
           </div>
 
           {/* Metadata & Permissions */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-5">
-            <Label className="text-lg font-bold">Metadata & Licentie</Label>
+          <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
+            <Label className="text-base font-bold text-white tracking-tight">Metadata & Licentie</Label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs font-semibold">Standaard Genre</Label>
+                <Label className="text-xs font-semibold text-[#86868b]">Standaard Genre</Label>
                 <Select value={globalGenre} onValueChange={setGlobalGenre}>
-                  <SelectTrigger className="mt-1.5">
+                  <SelectTrigger className="mt-1.5 bg-[#1c1c1e] border-white/[0.08] rounded-xl text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1c1c1e] border-white/[0.08] text-white">
                     {genres.map((g) => (
                       <SelectItem key={g} value={g}>
                         {g}
@@ -1009,15 +1005,15 @@ export function Upload() {
               </div>
 
               <div>
-                <Label className="text-xs font-semibold">Licentie</Label>
+                <Label className="text-xs font-semibold text-[#86868b]">Licentie</Label>
                 <Select
                   value={globalLicense}
                   onValueChange={(val) => setGlobalLicense(val as Track['license'])}
                 >
-                  <SelectTrigger className="mt-1.5">
+                  <SelectTrigger className="mt-1.5 bg-[#1c1c1e] border-white/[0.08] rounded-xl text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1c1c1e] border-white/[0.08] text-white">
                     {licenses.map((lic) => (
                       <SelectItem key={lic.value} value={lic.value}>
                         {lic.label}
@@ -1030,60 +1026,61 @@ export function Upload() {
 
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2">
-                {isPrivate ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Globe className="w-4 h-4 text-muted-foreground" />}
-                <span className="text-sm font-medium">Privé Release (alleen voor jou zichtbaar)</span>
+                {isPrivate ? <Lock className="w-4 h-4 text-[#86868b]" /> : <Globe className="w-4 h-4 text-[#86868b]" />}
+                <span className="text-xs font-semibold text-white">Privé Release (alleen voor jou zichtbaar)</span>
               </div>
               <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
             </div>
           </div>
 
           {/* Credits & Summary Box */}
-          <div className="bg-gradient-to-br from-orange-500/10 via-card to-card border border-orange-500/30 rounded-2xl p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-[#fa233b]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div>
-                <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Overzicht Upload</p>
-                <h3 className="text-lg font-bold mt-0.5">
+                <p className="text-xs font-semibold text-[#fa233b] uppercase tracking-wider">Overzicht Upload</p>
+                <h3 className="text-xl font-bold text-white mt-0.5 tracking-tight">
                   {totalTracksCount} track(s) geselecteerd
                   {createCollection && ` • ${collectionType === 'album' ? 'Album' : 'Afspeellijst'}`}
                 </h3>
-                <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                <div className="text-xs text-[#86868b] mt-1 space-y-0.5">
                   <p>• Basis upload ({totalTracksCount}x): {baseUploadCredits.toLocaleString()} credits (€{totalTracksCount * 5},-)</p>
                   {masteringCredits > 0 && (
                     <p>• Studio Mix & Mastering: +{masteringCredits.toLocaleString()} credits</p>
                   )}
-                  <p>• Totaal benodigd: <strong className="text-foreground">{totalCreditsRequired.toLocaleString()} credits</strong></p>
+                  <p>• Totaal benodigd: <strong className="text-white">{totalCreditsRequired.toLocaleString()} credits</strong></p>
                 </div>
               </div>
 
-              <div className="text-right sm:border-l sm:border-border sm:pl-6">
-                <p className="text-xs text-muted-foreground">Jouw Saldo</p>
-                <p className="text-2xl font-extrabold text-orange-400 flex items-center justify-end gap-1.5">
-                  <Coins className="w-5 h-5" />
+              <div className="text-right sm:border-l sm:border-white/[0.08] sm:pl-6">
+                <p className="text-xs text-[#86868b]">Jouw Saldo</p>
+                <p className="text-2xl font-bold text-white flex items-center justify-end gap-1.5 mt-0.5">
+                  <Coins className="w-5 h-5 text-amber-400" />
                   {userCurrentCredits.toLocaleString()}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Resterend na upload: {(userCurrentCredits - totalCreditsRequired).toLocaleString()}
+                <p className="text-[11px] text-[#86868b] mt-0.5">
+                  Resterend: {(userCurrentCredits - totalCreditsRequired).toLocaleString()}
                 </p>
               </div>
             </div>
 
             {/* Error or submit button */}
-            <div className="mt-6 pt-4 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="mt-6 pt-5 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
               {!hasSufficientCredits ? (
                 <div className="w-full flex items-center justify-between gap-4">
-                  <span className="text-xs text-red-400 font-semibold">
+                  <span className="text-xs text-[#fa233b] font-semibold">
                     Te weinig credits! Je hebt {(totalCreditsRequired - userCurrentCredits).toLocaleString()} credits extra nodig.
                   </span>
-                  <Button asChild className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
+                  <Button asChild variant="apple" size="sm" className="rounded-full text-xs font-semibold">
                     <Link to="/pricing">Credits Opwaarderen</Link>
                   </Button>
                 </div>
               ) : isGebruiker ? (
                 <div className="w-full flex items-center justify-between gap-4">
-                  <span className="text-xs text-red-400 font-semibold">
+                  <span className="text-xs text-[#fa233b] font-semibold">
                     Gebruikers mogen niet uploaden.
                   </span>
-                  <Button asChild className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
+                  <Button asChild variant="apple" size="sm" className="rounded-full text-xs font-semibold">
                     <Link to="/pricing">Upgrade naar Artiest (€50,-)</Link>
                   </Button>
                 </div>
@@ -1091,7 +1088,9 @@ export function Upload() {
                 <Button
                   type="submit"
                   disabled={isUploading || trackQueue.length === 0}
-                  className="w-full sm:w-auto ml-auto px-8 h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-base shadow-lg shadow-orange-500/25"
+                  variant="apple"
+                  size="lg"
+                  className="w-full sm:w-auto ml-auto px-8 h-12 font-bold text-sm shadow-xl"
                 >
                   {isUploading ? (
                     `Uploaden (${uploadProgress}%)...`
