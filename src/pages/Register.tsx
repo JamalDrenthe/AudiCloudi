@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -81,14 +82,14 @@ export function Register() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden py-12">
       {/* Background ambient spotlight */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#fa233b]/10 rounded-full blur-3xl pointer-events-none -z-0" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-3xl pointer-events-none -z-0" />
 
       <div className="w-full max-w-md relative z-10 bg-[#161617]/90 border border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#fa233b] to-[#fc3c44] flex items-center justify-center shadow-lg shadow-[#fa233b]/20">
-              <Music className="w-6 h-6 text-white" />
+          <Link to="/" className="inline-flex items-center justify-center group">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex items-center justify-center p-2.5 transition-transform duration-200 group-hover:scale-105">
+              <img src={logoImg} alt="CloudiAudi" className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(40,80,200,0.45)]" />
             </div>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-4">Maak een account</h1>

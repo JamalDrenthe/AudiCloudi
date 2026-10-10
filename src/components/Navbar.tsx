@@ -14,6 +14,7 @@ import { DirectMessageModal } from '@/components/DirectMessageModal';
 import { useAuth } from '@/context/AuthContext';
 import { mockNotifications } from '@/data/mockData';
 import { addRecentSearch } from '@/lib/searchHistory';
+import logoImg from '@/assets/logo.png';
 
 export function Navbar() {
   const { user, isAuthenticated, logout, credits, plan, directMessages } = useAuth();
@@ -39,10 +40,8 @@ export function Navbar() {
         <div className="flex items-center justify-between h-full gap-3 sm:gap-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#fc3c44] to-[#fa233b] flex items-center justify-center shadow-[0_2px_10px_rgba(250,35,59,0.4)] group-hover:scale-105 transition-transform duration-200">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="currentColor">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-              </svg>
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+              <img src={logoImg} alt="CloudiAudi" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(40,80,180,0.4)]" />
             </div>
             <span className="text-sm font-semibold tracking-[-0.02em] text-[#f5f5f7] hidden sm:block group-hover:text-white transition-colors">
               CloudiAudi

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Twitter, Instagram, MessageCircle } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 
 export function Footer() {
   return (
@@ -19,11 +20,9 @@ export function Footer() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 py-10">
           {/* Brand & Mission */}
           <div className="col-span-2 sm:col-span-3 md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-3 group">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#fc3c44] to-[#fa233b] flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
-                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                </svg>
+            <Link to="/" className="flex items-center gap-2.5 mb-3 group">
+              <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                <img src={logoImg} alt="CloudiAudi" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(40,80,180,0.35)]" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-white group-hover:text-[#f5f5f7]">
                 CloudiAudi
