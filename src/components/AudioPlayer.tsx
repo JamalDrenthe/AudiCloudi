@@ -103,7 +103,7 @@ export function AudioPlayer() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#161617]/92 backdrop-blur-2xl backdrop-saturate-180 border-t border-white/[0.08] shadow-[0_-12px_40px_rgba(0,0,0,0.85)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#161617]/92 backdrop-blur-2xl backdrop-saturate-150 border-t border-white/[0.08] shadow-[0_-12px_40px_rgba(0,0,0,0.85)]">
       {/* Apple Thin Hairline Scrubber */}
       <div className="group relative h-1 hover:h-2 bg-white/[0.06] cursor-pointer transition-all duration-150">
         <div
