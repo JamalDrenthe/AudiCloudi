@@ -161,7 +161,8 @@ class ScoringEngine:
         s_ret = self.compute_retention_score(user_vec, track_vec, completion_rate, repeats)
         s_soc = self.compute_social_score(track_data)
         s_com = self.compute_commercial_score(track_data)
+        bandit_score = float(track_data.get("bandit_score", 0.50))
         penalty = self.compute_skip_penalty(duration_listened_ms, skipped_at_ms)
 
-        composite = (w_ret * s_ret) + (w_soc * s_soc) + (w_com * s_com) - penalty
+        composite = (w_ret * s_ret) + (w_soc * s_soc) + (w_com * s_com) + (0.15 * bandit_score) - penalty
         return float(round(max(0.0, composite), 4))

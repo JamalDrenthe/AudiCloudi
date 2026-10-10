@@ -11,7 +11,6 @@ import {
   onSnapshot,
   setDoc,
   deleteDoc,
-  updateDoc,
   increment,
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '@/lib/firebase';
@@ -237,10 +236,14 @@ export function TrackProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const trackRef = doc(db, 'tracks', trackId);
-      updateDoc(trackRef, {
-        playsCount: increment(1),
-      }).catch(() => {});
+      // Distributed sharded counter write (N=16 shards) to eliminate lock contention
+      const shardId = `shard_${Math.floor(Math.random() * 16)}`;
+      const shardRef = doc(db, 'tracks', trackId, 'shards', shardId);
+      setDoc(shardRef, {
+        count: increment(1),
+        shard_id: shardId,
+        updated_at: Date.now(),
+      }, { merge: true }).catch(() => {});
     } catch {
       // Ignore
     }

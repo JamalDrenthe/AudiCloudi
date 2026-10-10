@@ -28,6 +28,13 @@ export interface User {
   socials?: UserSocials;
   reposts?: string[];
   likes?: string[];
+  labelId?: string;
+  labelName?: string;
+  signedArtistIds?: string[];
+  genre?: string;
+  location?: string;
+  website?: string;
+  verified?: boolean;
 }
 
 export interface DirectMessage {

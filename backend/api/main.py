@@ -7,6 +7,8 @@ Coordinates:
 - Artist / Producer Diagnostics
 - Clean Consumer / Guest Feeds
 - Real-Time Telemetry Event Streaming (BigQuery & Firestore)
+- Distributed Sharded Counter Aggregation
+- W3C Server-Timing Observability Headers
 """
 
 from __future__ import annotations
@@ -18,6 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.core.config import settings
+from backend.core.counters import counter_manager
+from backend.core.cache import warm_cache
 from backend.api.admin_api import router as admin_router
 from backend.api.label_api import router as label_router
 from backend.api.artist_api import router as artist_router
@@ -52,11 +56,23 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    """Measures request execution time for observability."""
+async def add_process_time_and_server_timing(request: Request, call_next):
+    """
+    Measures request execution time and injects W3C Server-Timing headers
+    to guarantee sub-100ms visibility.
+    """
     start_time = time.time()
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000.0
+
+    # Retain existing Server-Timing or initialize
+    existing_timing = response.headers.get("Server-Timing")
+    app_metric = f"app;dur={process_time:.2f}"
+    if existing_timing:
+        response.headers["Server-Timing"] = f"{existing_timing}, {app_metric}"
+    else:
+        response.headers["Server-Timing"] = app_metric
+
     response.headers["X-Response-Time-Ms"] = f"{process_time:.2f}"
     return response
 
@@ -88,6 +104,29 @@ async def stream_comment_event(event: WaveformCommentEvent) -> Dict[str, Any]:
 async def stream_marketplace_event(event: MarketplaceEvent) -> Dict[str, Any]:
     """Ingests BeatStars-style commercial funnel event to BigQuery and Firestore."""
     return streamer.stream_marketplace_event(event)
+
+
+@app.post("/api/v1/system/aggregate_counters", tags=["System Maintenance"])
+async def trigger_counter_aggregation(batch_size: int = 50) -> Dict[str, Any]:
+    """
+    Scheduled worker endpoint for periodic Cloud Scheduler sync of sharded counters
+    to root track documents.
+    """
+    return counter_manager.batch_aggregate_all_tracks(batch_size=batch_size)
+
+
+@app.get("/api/v1/system/cache_stats", tags=["System Maintenance"])
+async def get_cache_statistics() -> Dict[str, Any]:
+    """Returns warm-instance memory cache diagnostics."""
+    with warm_cache._lock:
+        namespaces = {k: len(v) for k, v in warm_cache._stores.items()}
+    return {
+        "status": "active",
+        "cache_type": "in_memory_warm_instance_lru",
+        "namespaces_item_counts": namespaces,
+        "default_ttl_seconds": warm_cache.default_ttl,
+        "fixed_monthly_cost_eur": 0.00,
+    }
 
 
 @app.get("/health", tags=["Health & Status"])

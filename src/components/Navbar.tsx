@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic, Coins, CreditCard, Trophy, MessageSquare } from 'lucide-react';
+import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic, Coins, CreditCard, Trophy, MessageSquare, Music2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -71,6 +71,12 @@ export function Navbar() {
               <Link to="/charts" className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300">
                 <Trophy className="w-4 h-4" />
                 <span>Top 20</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/artists" className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 font-semibold">
+                <Music2 className="w-4 h-4" />
+                <span>Artiesten</span>
               </Link>
             </Button>
             <Button variant="ghost" asChild>
@@ -258,6 +264,12 @@ export function Navbar() {
                 <Link to="/charts" className="flex items-center gap-2">
                   <Trophy className="w-4 h-4" />
                   Top 20 Hitlijst
+                </Link>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start text-orange-400 font-semibold" asChild>
+                <Link to="/artists" className="flex items-center gap-2">
+                  <Music2 className="w-4 h-4" />
+                  Artiesten & Zheavenzy
                 </Link>
               </Button>
               <Button variant="ghost" className="w-full justify-start" asChild>

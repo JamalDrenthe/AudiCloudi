@@ -24,6 +24,7 @@ rules_version = '2';
 // Collections:
 //   - /users/{userId}: User profile metadata, stats, and search history.
 //   - /tracks/{track_id}: Music tracks, commercial tiers, waveform, licensing, and audio URL.
+//     - /tracks/{track_id}/shards/{shardId}: Distributed sharded counters for playsCount (count, updated_at, shard_id).
 //     - /tracks/{track_id}/interactions/{interactionId}: Event stream (plays, skips, likes, shares).
 //     - /tracks/{track_id}/telemetry/{telemetryId}: Diagnostics & telemetry metrics (artist/label/admin only).
 //     - /tracks/{track_id}/private_splits/{splitId}: Confidential royalty splits (artist/label/admin only).
@@ -183,14 +184,8 @@ service cloud.firestore {
              (!('userId' in incoming()) || !('userId' in resource.data) || incoming().userId == resource.data.userId) &&
              (!('tenant_id' in incoming()) || !('tenant_id' in resource.data) || incoming().tenant_id == resource.data.tenant_id) &&
              (!('createdAt' in incoming()) || !('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt) &&
-             (!('id' in incoming()) || !('id' in resource.data) || incoming().id == resource.data.id);
-    }
-
-    function isTrackPlayIncrement() {
-      return incoming().diff(resource.data).affectedKeys().hasOnly(['playsCount']) &&
-             resource.data.playsCount is number &&
-             incoming().playsCount is number &&
-             incoming().playsCount == resource.data.playsCount + 1;
+             (!('id' in incoming()) || !('id' in resource.data) || incoming().id == resource.data.id) &&
+             (isSuperAdmin() || !incoming().diff(resource.data).affectedKeys().hasAny(['playsCount']));
     }
 
     // ===============================================================
@@ -527,19 +522,32 @@ service cloud.firestore {
            'tenant_id' in incoming() && incoming().tenant_id == request.auth.token.tenant_id)
         );
 
-      // Track updates: atomic playsCount increment by listeners, or metadata edit by owner/label/admin
-      allow update: if isValidId(trackId) && (
-        isTrackPlayIncrement() ||
+      // Track updates: metadata edit by owner/label/super_admin only (direct playsCount mutations blocked)
+      allow update: if isValidId(trackId) &&
+        isValidTrack(incoming()) &&
+        areTrackOwnersUnchanged() &&
         (
-          isValidTrack(incoming()) &&
-          areTrackOwnersUnchanged() &&
-          (
-            isSuperAdmin() ||
-            (isArtistProducer() && trackBelongsToArtist(resource.data)) ||
-            (isRecordLabel() && trackBelongsToLabel(resource.data))
-          )
-        )
-      );
+          isSuperAdmin() ||
+          (isArtistProducer() && trackBelongsToArtist(resource.data)) ||
+          (isRecordLabel() && trackBelongsToLabel(resource.data))
+        );
+
+      // --- Subcollection: Distributed Sharded Counters ---
+      match /shards/{shardId} {
+        allow read: if isValidId(shardId) && (
+          isSuperAdmin() ||
+          (existsTrack(trackId) && canReadTrackDocument(getTrack(trackId)))
+        );
+        allow create: if isValidId(shardId) && isSignedIn() &&
+          incoming().keys().hasOnly(['count', 'updated_at', 'shard_id']) &&
+          incoming().count is number && incoming().count >= 1 &&
+          incoming().shard_id == shardId;
+        allow update: if isValidId(shardId) && isSignedIn() &&
+          incoming().diff(resource.data).affectedKeys().hasOnly(['count', 'updated_at']) &&
+          incoming().count is number &&
+          incoming().count == resource.data.count + 1;
+        allow delete: if isSuperAdmin();
+      }
 
       // Deletion: owner artist or super admin only
       allow delete: if isValidId(trackId) && (

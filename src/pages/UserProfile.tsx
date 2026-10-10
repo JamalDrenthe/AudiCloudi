@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Play,
@@ -15,6 +15,11 @@ import {
   Repeat2,
   Edit3,
   Globe,
+  Building2,
+  Sparkles,
+  CheckCircle2,
+  Music2,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,8 +49,8 @@ import { useTracks } from '@/context/TrackContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
 import { toast } from 'sonner';
-import { getUserById } from '@/data/mockData';
-import type { Track, UserSocials } from '@/types';
+import { getUserById, getArtistsByLabel } from '@/data/mockData';
+import type { Track, UserSocials, User } from '@/types';
 
 // Helper to compress image before persisting
 function compressImage(file: File, maxWidth: number, maxHeight: number, quality = 0.8): Promise<string> {
@@ -200,8 +205,9 @@ function TrackRow({
   );
 }
 
-export function UserProfile() {
-  const { id } = useParams<{ id: string }>();
+export function UserProfile({ defaultUserId }: { defaultUserId?: string } = {}) {
+  const { id: paramId } = useParams<{ id: string }>();
+  const id = paramId || defaultUserId;
   const {
     user: currentUser,
     isAuthenticated,
@@ -216,7 +222,6 @@ export function UserProfile() {
   const { playQueue, shufflePlayQueue } = usePlayer();
   const { playlists } = usePlaylist();
 
-  const [activeTab, setActiveTab] = useState('tracks');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedShareTrack, setSelectedShareTrack] = useState<Track | null>(null);
   const [isDMOpen, setIsDMOpen] = useState(false);
@@ -230,8 +235,13 @@ export function UserProfile() {
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
-  const isOwnProfile = !id || currentUser?.id === id;
-  const rawUser = isOwnProfile ? currentUser : getUserById(id);
+  const matchedUser = id ? getUserById(id) : undefined;
+  const isOwnProfile =
+    !id ||
+    currentUser?.id === id ||
+    currentUser?.username === id ||
+    (currentUser?.id === 'admin_jamal' && (id === 'jamal-drenthe' || id === 'admin_jamal' || id === 'js_drenthe'));
+  const rawUser = isOwnProfile && currentUser ? { ...(matchedUser || {}), ...currentUser } : (matchedUser || (!id ? currentUser : undefined));
 
   // Fallback defaults for missing user fields
   const user = rawUser
@@ -252,6 +262,28 @@ export function UserProfile() {
       }
     : undefined;
 
+  const isLabel = user?.plan === 'label' || user?.id === 'zheavenzy';
+
+  const [activeTab, setActiveTab] = useState(isLabel ? 'roster' : 'tracks');
+
+  // Sync activeTab when user changes
+  useEffect(() => {
+    if (isLabel) {
+      setActiveTab('roster');
+    } else {
+      setActiveTab('tracks');
+    }
+  }, [id, isLabel]);
+
+  // Signed artists list for labels
+  const signedArtists = useMemo<User[]>(() => {
+    if (!user || !isLabel) return [];
+    if (user.signedArtistIds && user.signedArtistIds.length > 0) {
+      return user.signedArtistIds.map((aid) => getUserById(aid)).filter((u): u is User => Boolean(u));
+    }
+    return getArtistsByLabel(user.id);
+  }, [user, isLabel]);
+
   const isFollowing = user ? checkIsFollowing(user.id) : false;
 
   // Real-time follower count calculation
@@ -262,11 +294,15 @@ export function UserProfile() {
     return isFollowing ? base + 1 : base;
   }, [user, isOwnProfile, isFollowing]);
 
-  // Tracks for this user
+  // Tracks for this user (or all label releases if viewing a record label)
   const userTracks = useMemo<Track[]>(() => {
     if (!user) return [];
+    if (isLabel) {
+      const signedIds = new Set([user.id, ...(user.signedArtistIds || []), ...signedArtists.map((a) => a.id)]);
+      return tracks.filter((t: Track) => signedIds.has(t.userId));
+    }
     return tracks.filter((t: Track) => t.userId === user.id);
-  }, [tracks, user]);
+  }, [tracks, user, isLabel, signedArtists]);
 
   const userPlaylists = useMemo(() => {
     if (!user) return [];
@@ -276,14 +312,14 @@ export function UserProfile() {
   // Public Likes tracks
   const likedTracks = useMemo<Track[]>(() => {
     if (!user) return [];
-    const targetLikeIds = isOwnProfile ? likedTrackIds : (user.likes || ['1', '2', '4']);
+    const targetLikeIds = isOwnProfile ? likedTrackIds : (user.likes || ['track_zheavenzy_cypher', 'track_jamal_1', '1', '2']);
     return tracks.filter((t: Track) => targetLikeIds.includes(t.id));
   }, [isOwnProfile, likedTrackIds, user, tracks]);
 
   // Public Reposts tracks
   const repostedTracks = useMemo<Track[]>(() => {
     if (!user) return [];
-    const targetRepostIds = isOwnProfile ? repostedTrackIds : (user.reposts || ['1', '3']);
+    const targetRepostIds = isOwnProfile ? repostedTrackIds : (user.reposts || ['track_zheavenzy_cypher', '3']);
     return tracks.filter((t: Track) => targetRepostIds.includes(t.id));
   }, [isOwnProfile, repostedTrackIds, user, tracks]);
 
@@ -468,13 +504,59 @@ export function UserProfile() {
                         Admin
                       </span>
                     )}
-                    {user.plan && (
+                    {isLabel ? (
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 to-orange-500/25 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                        <Building2 className="w-3 h-3 text-amber-400" />
+                        Officiëel Record Label
+                      </span>
+                    ) : user.plan === 'artiest' ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 flex items-center gap-1">
+                        <Music2 className="w-3 h-3" />
+                        Geverifieerde Artiest
+                      </span>
+                    ) : user.plan ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">
                         {user.plan}
                       </span>
+                    ) : null}
+                    {user.verified && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Geverifieerd
+                      </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">@{user.username}</p>
+
+                  {/* Subline: username + label affiliation + genre + location */}
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                    <span>@{user.username}</span>
+                    {user.labelName && !isLabel && (
+                      <>
+                        <span>•</span>
+                        <Link
+                          to={`/label/${user.labelId || 'zheavenzy'}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400 hover:text-orange-300 hover:underline bg-orange-500/10 px-2.5 py-0.5 rounded-full border border-orange-500/25 transition-all hover:scale-105"
+                          title="Bekijk het officiële Zheavenzy label profiel"
+                        >
+                          <Building2 className="w-3 h-3 text-orange-400" />
+                          <span>Getekend bij {user.labelName} Label</span>
+                        </Link>
+                      </>
+                    )}
+                    {user.genre && (
+                      <>
+                        <span>•</span>
+                        <span className="text-xs text-foreground/80 font-medium">{user.genre}</span>
+                      </>
+                    )}
+                    {user.location && (
+                      <>
+                        <span>•</span>
+                        <span className="text-xs text-muted-foreground">📍 {user.location}</span>
+                      </>
+                    )}
+                  </div>
+
                   {user.bio ? (
                     <p className="mt-2 text-xs sm:text-sm text-foreground/90 max-w-xl leading-relaxed whitespace-pre-wrap">
                       {user.bio}
@@ -617,6 +699,23 @@ export function UserProfile() {
                   </Button>
                 )}
 
+                {/* Demo Inzenden for Labels */}
+                {isLabel && (
+                  <Button
+                    className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold shadow-md shadow-orange-500/20"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        toast.error('Log eerst in om een demo in te zenden naar Zheavenzy.');
+                        return;
+                      }
+                      setIsDMOpen(true);
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    Demo Inzenden
+                  </Button>
+                )}
+
                 {/* Edit Profile Button (Own Profile) */}
                 {isOwnProfile && (
                   <Button
@@ -679,11 +778,17 @@ export function UserProfile() {
             </div>
 
             {/* LIVE PROFILE STATS */}
-            <div className="flex items-center gap-8 mt-6 pt-4 border-t border-border/50">
+            <div className="flex items-center gap-6 sm:gap-8 mt-6 pt-4 border-t border-border/50 flex-wrap">
               <div className="text-center sm:text-left">
                 <p className="text-lg font-black text-white">{userTracks.length}</p>
-                <p className="text-xs text-muted-foreground">Tracks</p>
+                <p className="text-xs text-muted-foreground">{isLabel ? 'Label Releases' : 'Tracks'}</p>
               </div>
+              {isLabel && (
+                <div className="text-center sm:text-left">
+                  <p className="text-lg font-black text-orange-400">{signedArtists.length}</p>
+                  <p className="text-xs text-muted-foreground">Getekende Artiesten</p>
+                </div>
+              )}
               <div className="text-center sm:text-left">
                 <p className="text-lg font-black text-white">{followersCount.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Volgers</p>
@@ -703,12 +808,94 @@ export function UserProfile() {
 
           {/* PROFILE TABS */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6 bg-secondary/60">
-              <TabsTrigger value="tracks">Tracks ({userTracks.length})</TabsTrigger>
+            <TabsList className="mb-6 bg-secondary/60 flex-wrap h-auto p-1 gap-1">
+              {isLabel && (
+                <TabsTrigger
+                  value="roster"
+                  className="flex items-center gap-1.5 font-bold data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Getekende Artiesten ({signedArtists.length})</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="tracks">
+                {isLabel ? `Alle Label Releases (${userTracks.length})` : `Tracks (${userTracks.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="about">Over {user.displayName}</TabsTrigger>
               <TabsTrigger value="likes">Likes ({likedTracks.length})</TabsTrigger>
               <TabsTrigger value="reposts">Herplaatst ({repostedTracks.length})</TabsTrigger>
               <TabsTrigger value="playlists">Afspeellijsten ({userPlaylists.length})</TabsTrigger>
             </TabsList>
+
+            {/* TAB: ROSTER (ONLY FOR RECORD LABELS) */}
+            {isLabel && (
+              <TabsContent value="roster" className="space-y-6">
+                <div className="p-6 rounded-2xl bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-transparent border border-orange-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-black text-white flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-orange-400" />
+                      Officiële Zheavenzy Records Artiesten Roster
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                      Ontdek alle 11 getekende artiesten op Zheavenzy. Van rauwe straatrap en drill tot zwoele R&B, futuristic melodic trap en krachtige pop anthems. Klik op een artiest om naar hun eigen profielpagina te gaan.
+                    </p>
+                  </div>
+                  <Button
+                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white shrink-0 font-semibold"
+                    onClick={handlePlayAll}
+                  >
+                    <Play className="w-4 h-4 mr-2 fill-current" />
+                    Speel Roster Releases
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {signedArtists.map((artist) => (
+                    <div
+                      key={artist.id}
+                      className="p-5 rounded-2xl bg-card border border-border/70 hover:border-orange-500/40 transition-all hover:shadow-xl hover:shadow-orange-500/5 flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="relative mb-3 flex justify-center">
+                          <Avatar className="w-24 h-24 ring-2 ring-orange-500/20 group-hover:ring-orange-500/60 transition-all">
+                            <AvatarImage src={artist.avatarUrl} alt={artist.displayName} />
+                            <AvatarFallback>{artist.displayName[0]}</AvatarFallback>
+                          </Avatar>
+                          <span className="absolute bottom-0 right-1/2 translate-x-8 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500 text-white shadow">
+                            Artist
+                          </span>
+                        </div>
+                        <div className="text-center">
+                          <h3 className="font-bold text-base text-foreground group-hover:text-orange-400 transition-colors">
+                            {artist.displayName}
+                          </h3>
+                          <p className="text-xs text-orange-400 font-medium mt-0.5">
+                            {artist.genre || 'Zheavenzy Artist'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+                            {artist.bio}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {artist.followersCount.toLocaleString()} volgers
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="rounded-full text-xs h-8 px-3 group-hover:bg-orange-500 group-hover:text-white transition-colors"
+                          asChild
+                        >
+                          <Link to={`/artist/${artist.username}`}>Eigen Pagina →</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            )}
 
             {/* TAB 1: TRACKS */}
             <TabsContent value="tracks" className="space-y-4">
@@ -755,6 +942,78 @@ export function UserProfile() {
                   )}
                 </div>
               )}
+            </TabsContent>
+
+            {/* TAB: ABOUT (OVER DE ARTIEST OF HET LABEL) */}
+            <TabsContent value="about" className="space-y-6">
+              <div className="p-6 rounded-2xl bg-card border border-border/70 space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-2">Biografie</h3>
+                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                    {user.bio || 'Geen biografie beschikbaar.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-border/50">
+                  {user.genre && (
+                    <div className="p-3.5 rounded-xl bg-secondary/40 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Muziekstijl / Focus</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{user.genre}</p>
+                    </div>
+                  )}
+                  {user.location && (
+                    <div className="p-3.5 rounded-xl bg-secondary/40 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Locatie</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{user.location}</p>
+                    </div>
+                  )}
+                  {user.labelName && !isLabel && (
+                    <div className="p-3.5 rounded-xl bg-secondary/40 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Platenlabel</p>
+                      <Link
+                        to={`/label/${user.labelId || 'zheavenzy'}`}
+                        className="text-sm font-semibold text-orange-400 hover:underline flex items-center gap-1 mt-0.5"
+                      >
+                        <Building2 className="w-3.5 h-3.5" />
+                        {user.labelName} Records
+                      </Link>
+                    </div>
+                  )}
+                  {isLabel && (
+                    <div className="p-3.5 rounded-xl bg-secondary/40 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Getekende Artiesten</p>
+                      <p className="text-sm font-semibold text-orange-400 mt-0.5">
+                        {signedArtists.length} Artiesten op het Roster
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* If artist signed to Zheavenzy, show fellow label family info */}
+                {user.labelName === 'Zheavenzy' && !isLabel && (
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-orange-500/10 to-transparent border border-orange-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold shrink-0">
+                        Z
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Deel van de Zheavenzy Familie</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {user.displayName} brengt officiële releases uit onder Zheavenzy Records.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-orange-500/40 text-orange-400 hover:bg-orange-500/10 text-xs shrink-0"
+                      asChild
+                    >
+                      <Link to="/label/zheavenzy">Bekijk Zheavenzy Label</Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             {/* TAB 2: LIKES */}

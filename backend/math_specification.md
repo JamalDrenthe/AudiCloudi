@@ -141,3 +141,54 @@ $$G = \frac{\sum_{j=1}^M \sum_{k=1}^M |y_j - y_k|}{2 M \sum_{j=1}^M y_j}$$
 Als $G > G_{\text{target}} = 0.55$, corrigeren we de rangschikking met een fairness boost multiplier $\gamma_{\text{fair}}(i)$:
 $$\gamma_{\text{fair}}(i) = 1.0 + \delta \cdot \max\left(0, 1.0 - \frac{\text{Impressions}(\text{Producer}(i))}{K_{\text{fair}}}\right), \quad \delta = 0.25$$
 $$\text{Score}_{\text{final}}(u, i) = \text{Score}(u, i) \cdot \gamma_{\text{fair}}(i)$$
+
+---
+
+## 7. Clustered Latent Microgenre Arms & Sherman-Morrison Online Update
+
+### 7.1 Reductie van $N$ Track-Armen naar $K=64$ Latente Cluster-Armen:
+In plaats van een aparte covariantiematrix per track te onderhouden, partitioneren we de 256-dimensionale akoestische embeddingruimte in $K=64$ centroids $\{\boldsymbol{\mu}_1, \dots, \boldsymbol{\mu}_{64}\} \subset \mathbb{R}^{256}$.
+
+Elke track $i$ wordt deterministisch toegewezen aan het dichtstbijzijnde centroid:
+$$c(i) = \arg\min_{k \in \{1, \dots, 64\}} \|\mathbf{e}_i - \boldsymbol{\mu}_k\|_2 = \arg\max_{k \in \{1, \dots, 64\}} \mathbf{e}_i^\top \boldsymbol{\mu}_k$$
+
+Voor elk cluster $k \in \{1, \dots, 64\}$ onderhouden we:
+$$\mathbf{A}_k \in \mathbb{R}^{d \times d}, \quad \mathbf{b}_k \in \mathbb{R}^d, \quad d = 256$$
+
+### 7.2 Sherman-Morrison Rang-1 Matrix Inverse Update:
+De klassieke LinUCB vereist de inversie $\mathbf{A}_k^{-1}$, wat $O(d^3) = O(256^3) \approx 16{,}777{,}216$ operaties vergt. 
+
+Om sub-2ms runtime updates op de CPU te garanderen, onderhouden we de inverse matrix $\mathbf{M}_k = \mathbf{A}_k^{-1}$ direct in het geheugen. Wanneer contextvector $\mathbf{x} \in \mathbb{R}^d$ en beloning $r \in \mathbb{R}$ worden waargenomen:
+$$\mathbf{A}_{k, t+1} = \mathbf{A}_{k, t} + \mathbf{x} \mathbf{x}^\top$$
+
+Volgens het Sherman-Morrison theorema geldt voor de inverse:
+$$\mathbf{A}_{k, t+1}^{-1} = \mathbf{A}_{k, t}^{-1} - \frac{\mathbf{A}_{k, t}^{-1} \mathbf{x} \mathbf{x}^\top \mathbf{A}_{k, t}^{-1}}{1 + \mathbf{x}^\top \mathbf{A}_{k, t}^{-1} \mathbf{x}}$$
+
+Laat $\mathbf{v} = \mathbf{M}_{k, t} \mathbf{x} \in \mathbb{R}^{256}$. Dan:
+$$\mathbf{M}_{k, t+1} = \mathbf{M}_{k, t} - \frac{\mathbf{v} \mathbf{v}^\top}{1 + \mathbf{x}^\top \mathbf{v}}$$
+
+Dit reduceert de rekencomplexiteit van $O(d^3)$ naar $O(d^2) = 256^2 = 65{,}536$ bewerkingen, wat op een moderne multi-core processor in $< 1.5\text{ ms}$ executeert.
+
+De Upper Confidence Bound score voor cluster $k$ gegeven gebruikerscontext $\mathbf{x}$:
+$$\hat{\boldsymbol{\theta}}_k = \mathbf{M}_k \mathbf{b}_k$$
+$$\text{UCB}(k \mid \mathbf{x}) = \hat{\boldsymbol{\theta}}_k^\top \mathbf{x} + \alpha \sqrt{\mathbf{x}^\top \mathbf{M}_k \mathbf{x}}$$
+
+---
+
+## 8. Distributed Sharded Counters & Write-Contention Eliminatie
+
+### Poisson Aankomstmodel & Write-Lock Analyse:
+Google Cloud Firestore handhaaft een harde limiet van circa 1 schrijfactie per seconde per individueel document ($1\text{ write/sec}$). Bij virale tracks met stream-aankomstsnelheid $\lambda \gg 1\text{ stream/sec}$ leidt een enkele teller op `/tracks/{track_id}.playsCount` tot $100\%$ lock-contention en `ABORTED / DEADLINE_EXCEEDED` fouten.
+
+Met $N = 16$ onafhankelijke shards in de subcollection `/tracks/{track_id}/shards/shard_{s}`:
+$$P(\text{Shard} = s) = \frac{1}{N} = \frac{1}{16}$$
+
+De effectieve aankomstsnelheid per shard:
+$$\lambda_s = \frac{\lambda}{N} = \frac{\lambda}{16}$$
+
+Hierdoor kan de track tot $16 \times 1\text{ write/sec} = 16\text{ streams/sec}$ verwerken zonder write-locks.
+
+De totale stroomteller $T$ wordt opgevraagd via server-side Aggregation Queries:
+$$T = \sum_{s=0}^{N-1} \text{count}_s$$
+en periodiek atomair geconsolideerd naar het hoofdtrackdocument via een scheduled worker.
+

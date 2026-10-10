@@ -44,14 +44,18 @@ import { toast } from 'sonner';
 
 const genres = ['All', 'Electronic', 'Hip Hop', 'Rock', 'Pop', 'Jazz', 'Classical', 'Ambient'];
 const popularTags = [
-  'Electronic',
-  'Synthwave',
-  'Lo-Fi Chill',
+  'Zheavenzy',
   'Jamal Drenthe',
-  'Ambient',
+  'Askylon',
+  'Rowu',
+  'Youandi',
+  'Raka VW',
+  'H.E.G.',
+  'Andreea Comandaru',
+  'Trap',
   'Hip Hop',
-  'Summer House',
-  'Cyberpunk',
+  'R&B',
+  'New Wave',
 ];
 const sortOptions = [
   { value: 'relevance', label: 'Relevance' },
@@ -120,7 +124,10 @@ export function Search() {
     ? mockUsers.filter(
         (u) =>
           u.displayName.toLowerCase().includes(query.toLowerCase()) ||
-          u.username.toLowerCase().includes(query.toLowerCase())
+          u.username.toLowerCase().includes(query.toLowerCase()) ||
+          (u.bio && u.bio.toLowerCase().includes(query.toLowerCase())) ||
+          (u.genre && u.genre.toLowerCase().includes(query.toLowerCase())) ||
+          (u.labelName && u.labelName.toLowerCase().includes(query.toLowerCase()))
       )
     : [];
 
