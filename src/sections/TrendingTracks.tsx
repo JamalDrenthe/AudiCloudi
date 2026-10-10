@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Heart, MoreHorizontal } from 'lucide-react';
+import { Play, Heart, MoreHorizontal, Share2, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,15 +11,27 @@ import {
 import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
 import { useTracks } from '@/context/TrackContext';
+import { useAuth } from '@/context/AuthContext';
 import { getTrendingTracks, getUserById } from '@/data/mockData';
 import { TrackCover } from '@/components/TrackCover';
+import { ShareTrackModal } from '@/components/ShareTrackModal';
+import { toast } from 'sonner';
 import type { Track } from '@/types';
 
-function TrackCard({ track, index }: { track: Track; index: number }) {
+function TrackCard({
+  track,
+  index,
+  onShare,
+}: {
+  track: Track;
+  index: number;
+  onShare: (track: Track) => void;
+}) {
   const { playTrack, addToQueue, currentTrack, isPlaying } = usePlayer();
   const { openAddToPlaylistModal } = usePlaylist();
-  const [isLiked, setIsLiked] = useState(false);
-  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const { toggleLike, isLiked: checkIsLiked, toggleRepost, isReposted: checkIsReposted, isAuthenticated } = useAuth();
+  const isLiked = checkIsLiked(track.id);
+  const isReposted = checkIsReposted(track.id);
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -133,40 +145,75 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
             {artist?.displayName}
           </Link>
           <div className="flex items-center justify-between mt-3">
-            <span className="text-xs text-muted-foreground">
-              {track.playsCount.toLocaleString()} plays
+            <span className="text-xs text-muted-foreground font-medium">
+              {(track.playsCount || 0).toLocaleString()} plays
             </span>
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hover:bg-orange-500/10 active:scale-90 transition-all duration-200"
+                className={`h-8 w-8 hover:bg-orange-500/10 active:scale-90 transition-all duration-200 ${
+                  isLiked ? 'text-rose-500' : 'text-muted-foreground'
+                }`}
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const nextLiked = !isLiked;
-                  setIsLiked(nextLiked);
-                  if (nextLiked) {
-                    setIsLikeAnimating(true);
+                  if (!isAuthenticated) {
+                    toast.error('Log eerst in om te liken.');
+                    return;
                   }
+                  toggleLike(track.id);
                 }}
                 title={isLiked ? "Unlike" : "Like"}
               >
                 <Heart
-                  onAnimationEnd={() => setIsLikeAnimating(false)}
-                  className={`w-4 h-4 transition-all duration-300 ease-out ${
-                    isLiked
-                      ? 'fill-orange-500 text-orange-500'
-                      : 'text-muted-foreground hover:text-orange-400'
-                  } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
+                  className="w-4 h-4"
+                  fill={isLiked ? 'currentColor' : 'none'}
                 />
               </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-8 w-8 hover:bg-emerald-500/10 transition-all duration-200 ${
+                  isReposted ? 'text-emerald-400' : 'text-muted-foreground'
+                }`}
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isAuthenticated) {
+                    toast.error('Log eerst in om te herplaatsen.');
+                    return;
+                  }
+                  const res = toggleRepost(track.id);
+                  if (res) toast.success(`"${track.title}" herplaatst op je profiel!`);
+                  else toast.info('Herplaatsing verwijderd');
+                }}
+                title={isReposted ? "Herplaatst" : "Herplaatsen"}
+              >
+                <Repeat2 className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onShare(track);
+                }}
+                title="Deel naar socials"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 text-muted-foreground"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="w-4 h-4" />
@@ -179,10 +226,9 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
                   <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)}>
                     Toevoegen aan afspeellijst
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/track/${track.id}`);
-                  }}>
-                    Share
+                  <DropdownMenuItem onClick={() => onShare(track)}>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Delen naar Socials
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -196,6 +242,7 @@ function TrackCard({ track, index }: { track: Track; index: number }) {
 
 export function TrendingTracks() {
   const { tracks: allTracks } = useTracks();
+  const [shareTrack, setShareTrack] = useState<Track | null>(null);
   const trendingTracks = allTracks.length > 0 ? allTracks.slice(0, 8) : getTrendingTracks(8);
 
   return (
@@ -205,20 +252,31 @@ export function TrendingTracks() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold">Trending Now</h2>
-            <p className="text-muted-foreground mt-1">Most played tracks this week</p>
+            <p className="text-muted-foreground mt-1">Meest beluisterde nummers deze week</p>
           </div>
-          <Button variant="ghost" asChild>
-            <Link to="/trending">View All</Link>
+          <Button variant="ghost" asChild className="text-orange-400 hover:text-orange-300">
+            <Link to="/charts">Bekijk Top 20 Hitlijst →</Link>
           </Button>
         </div>
 
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {trendingTracks.map((track, index) => (
-            <TrackCard key={track.id} track={track} index={index} />
+            <TrackCard
+              key={track.id}
+              track={track}
+              index={index}
+              onShare={(t) => setShareTrack(t)}
+            />
           ))}
         </div>
       </div>
+
+      <ShareTrackModal
+        isOpen={!!shareTrack}
+        onClose={() => setShareTrack(null)}
+        track={shareTrack}
+      />
     </section>
   );
 }

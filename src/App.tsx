@@ -15,6 +15,7 @@ import { Search } from '@/pages/Search';
 import { Library } from '@/pages/Library';
 import { Admin } from '@/pages/Admin';
 import { Pricing } from '@/pages/Pricing';
+import { Charts } from '@/pages/Charts';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/charts" element={<Charts />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/track/:id" element={<TrackDetail />} />

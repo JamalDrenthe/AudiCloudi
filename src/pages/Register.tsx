@@ -28,7 +28,7 @@ export function Register() {
     try {
       const result = await loginWithGoogle();
       if (result.success) {
-        toast.success('Account ready! Welcome to AudiCloudi.');
+        toast.success('Account ready! Welcome to CloudiAudi.');
         navigate('/');
       } else {
         setGoogleError(result.error || 'Google inloggen mislukt');
@@ -90,7 +90,7 @@ export function Register() {
           </Link>
           <h1 className="text-2xl font-bold mt-4">Create your account</h1>
           <p className="text-muted-foreground mt-1">
-            Join AudiCloudi and start sharing your music
+            Join CloudiAudi and start sharing your music
           </p>
         </div>
 

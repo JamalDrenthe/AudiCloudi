@@ -57,7 +57,10 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('audicloudi_playlists') : null;
+      const saved =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('cloudiaudi_playlists') || localStorage.getItem('audicloudi_playlists')
+          : null;
       if (saved) {
         return JSON.parse(saved);
       }
@@ -72,6 +75,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
   // Sync to localStorage whenever playlists change
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      localStorage.setItem('cloudiaudi_playlists', JSON.stringify(playlists));
       localStorage.setItem('audicloudi_playlists', JSON.stringify(playlists));
     }
   }, [playlists]);

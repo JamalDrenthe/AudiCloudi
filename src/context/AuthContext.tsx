@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '@/lib/firebase';
-import type { User, AuthState, LoginFormData, RegisterFormData } from '@/types';
+import type { User, AuthState, LoginFormData, RegisterFormData, DirectMessage } from '@/types';
 import { mockUsers, getUserById } from '@/data/mockData';
 
 interface AuthContextType extends AuthState {
@@ -17,10 +17,19 @@ interface AuthContextType extends AuthState {
   register: (data: RegisterFormData) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
   followingIds: string[];
   followUser: (userId: string) => Promise<void>;
   unfollowUser: (userId: string) => Promise<void>;
   isFollowing: (userId: string) => boolean;
+  repostedTrackIds: string[];
+  toggleRepost: (trackId: string) => boolean;
+  isReposted: (trackId: string) => boolean;
+  likedTrackIds: string[];
+  toggleLike: (trackId: string) => boolean;
+  isLiked: (trackId: string) => boolean;
+  directMessages: DirectMessage[];
+  sendDirectMessage: (recipientIds: string[], recipientNames: string[], content: string) => Promise<void>;
   plan: 'gebruiker' | 'artiest' | 'label';
   credits: number;
   monthlyUploadsCount: number;
@@ -67,6 +76,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fallback
     }
     return ['1', '2'];
+  });
+
+  const [repostedTrackIds, setRepostedTrackIds] = useState<string[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('cloudiaudi_reposts') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Fallback
+    }
+    return ['1', '3'];
+  });
+
+  const [likedTrackIds, setLikedTrackIds] = useState<string[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('cloudiaudi_likes') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Fallback
+    }
+    return ['1', '2', '4', '5'];
+  });
+
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('cloudiaudi_messages') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Fallback
+    }
+    return [
+      {
+        id: 'msg_1',
+        senderId: '1',
+        senderName: 'Luna Eclipse',
+        senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+        recipientIds: ['admin_jamal', 'js_drenthe'],
+        recipientNames: ['Jamal Drenthe'],
+        content: 'Hey Jamal! Geweldige beat op je nieuwste track. Laten we binnenkort samenwerken aan een remix!',
+        createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+      },
+      {
+        id: 'msg_2',
+        senderId: '2',
+        senderName: 'Marcus Vance',
+        senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+        recipientIds: ['admin_jamal', 'js_drenthe'],
+        recipientNames: ['Jamal Drenthe'],
+        content: 'Welkom op CloudiAudi! Laat me weten als je feedback wilt op je mix & master.',
+        createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+      },
+    ];
   });
 
   // Listen to Firebase auth state
@@ -180,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: 'js.drenthe@gmail.com',
       username: 'js_drenthe',
       displayName: 'Jamal Drenthe',
-      bio: 'Administrator & Muziekliefhebber van AudiCloudi',
+      bio: 'Administrator & Muziekliefhebber van CloudiAudi',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop',
       bannerUrl: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
       role: 'admin',
@@ -406,6 +466,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateUser(updatedUser);
   };
 
+  const toggleRepost = (trackId: string): boolean => {
+    let next: string[];
+    let isNowReposted = false;
+    if (repostedTrackIds.includes(trackId)) {
+      next = repostedTrackIds.filter(id => id !== trackId);
+      isNowReposted = false;
+    } else {
+      next = [trackId, ...repostedTrackIds];
+      isNowReposted = true;
+    }
+    setRepostedTrackIds(next);
+    localStorage.setItem('cloudiaudi_reposts', JSON.stringify(next));
+
+    if (state.user) {
+      const updatedUser: User = { ...state.user, reposts: next };
+      updateUser(updatedUser);
+    }
+    return isNowReposted;
+  };
+
+  const isReposted = (trackId: string) => repostedTrackIds.includes(trackId);
+
+  const toggleLike = (trackId: string): boolean => {
+    let next: string[];
+    let isNowLiked = false;
+    if (likedTrackIds.includes(trackId)) {
+      next = likedTrackIds.filter(id => id !== trackId);
+      isNowLiked = false;
+    } else {
+      next = [trackId, ...likedTrackIds];
+      isNowLiked = true;
+    }
+    setLikedTrackIds(next);
+    localStorage.setItem('cloudiaudi_likes', JSON.stringify(next));
+
+    if (state.user) {
+      const updatedUser: User = { ...state.user, likes: next };
+      updateUser(updatedUser);
+    }
+    return isNowLiked;
+  };
+
+  const isLiked = (trackId: string) => likedTrackIds.includes(trackId);
+
+  const updateProfile = async (updates: Partial<User>) => {
+    if (!state.user) return;
+    const updatedUser: User = {
+      ...state.user,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    await updateUser(updatedUser);
+  };
+
+  const sendDirectMessage = async (recipientIds: string[], recipientNames: string[], content: string) => {
+    const currentSenderId = state.user?.id || 'admin_jamal';
+    const currentSenderName = state.user?.displayName || 'Jamal Drenthe';
+    const currentSenderAvatar = state.user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop';
+
+    const newMsg: DirectMessage = {
+      id: `dm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      senderId: currentSenderId,
+      senderName: currentSenderName,
+      senderAvatar: currentSenderAvatar,
+      recipientIds,
+      recipientNames,
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const nextMessages = [newMsg, ...directMessages];
+    setDirectMessages(nextMessages);
+    localStorage.setItem('cloudiaudi_messages', JSON.stringify(nextMessages));
+
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, 'direct_messages', newMsg.id), newMsg);
+      } catch (err) {
+        console.warn('Could not save direct message to Firestore:', err);
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -416,10 +559,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateUser,
+        updateProfile,
         followingIds,
         followUser,
         unfollowUser,
         isFollowing,
+        repostedTrackIds,
+        toggleRepost,
+        isReposted,
+        likedTrackIds,
+        toggleLike,
+        isLiked,
+        directMessages,
+        sendDirectMessage,
         plan: currentPlan,
         credits: currentCredits,
         monthlyUploadsCount: currentMonthlyUploads,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Play,
@@ -14,6 +14,9 @@ import {
   UploadCloud,
   Search,
   Database,
+  Share2,
+  Headphones,
+  Shuffle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,6 +42,7 @@ import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
 import { TrackCover } from '@/components/TrackCover';
+import { ShareTrackModal } from '@/components/ShareTrackModal';
 import { useAuth } from '@/context/AuthContext';
 import { usePlayer } from '@/context/PlayerContext';
 import { usePlaylist } from '@/context/PlaylistContext';
@@ -47,12 +51,11 @@ import { getTrendingTracks, mockUsers, getUserById } from '@/data/mockData';
 import { toast } from 'sonner';
 
 const recentTracks = getTrendingTracks(10);
-const likedTracks = getTrendingTracks(8).reverse();
 
 export function Library() {
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, followingIds } = useAuth();
-  const { playTrack, playQueue } = usePlayer();
+  const { isAuthenticated, followingIds, likedTrackIds } = useAuth();
+  const { playTrack, playQueue, shufflePlayQueue } = usePlayer();
   const {
     userPlaylists,
     createPlaylist,
@@ -60,7 +63,13 @@ export function Library() {
     getTracksForPlaylist,
     openAddToPlaylistModal,
   } = usePlaylist();
-  const { userTracks, deleteTrack } = useTracks();
+  const { tracks: allTracks, userTracks, deleteTrack } = useTracks();
+
+  const [shareTrack, setShareTrack] = useState<any>(null);
+
+  const userLikedTracks = useMemo(() => {
+    return allTracks.filter((t) => likedTrackIds.includes(t.id));
+  }, [allTracks, likedTrackIds]);
 
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'uploads');
   const [uploadSearch, setUploadSearch] = useState('');
@@ -346,20 +355,36 @@ export function Library() {
             </TabsContent>
 
             <TabsContent value="likes">
-              <h2 className="text-xl font-semibold mb-4">Liked Tracks</h2>
-              {likedTracks.length > 0 ? (
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Liked Tracks ({userLikedTracks.length})</h2>
+                {userLikedTracks.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs"
+                    onClick={() => {
+                      shufflePlayQueue(userLikedTracks);
+                      toast.success('Gelikete nummers geshuffeld!');
+                    }}
+                  >
+                    <Shuffle className="w-3.5 h-3.5 mr-1.5" />
+                    Shuffle Likes
+                  </Button>
+                )}
+              </div>
+              {userLikedTracks.length > 0 ? (
                 <div className="space-y-2">
-                  {likedTracks.map((track, index) => {
+                  {userLikedTracks.map((track, index) => {
                     const artist = getUserById(track.userId);
                     return (
                       <div
                         key={track.id}
-                        className="flex items-center gap-4 p-3 rounded-lg hover:bg-card transition-colors group"
+                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-card transition-colors group"
                       >
-                        <span className="w-6 text-center text-sm text-muted-foreground">
+                        <span className="w-6 text-center text-sm text-muted-foreground shrink-0">
                           {index + 1}
                         </span>
-                        <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
                           <TrackCover track={track} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -371,20 +396,35 @@ export function Library() {
                           </Link>
                           <Link
                             to={`/user/${track.userId}`}
-                            className="text-sm text-muted-foreground hover:text-orange-500 transition-colors"
+                            className="text-xs text-muted-foreground hover:text-orange-500 transition-colors block truncate"
                           >
-                            {artist?.displayName}
+                            {artist?.displayName || track.userName || 'Artist'}
                           </Link>
                         </div>
+
+                        <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1 font-medium">
+                          <Headphones className="w-3.5 h-3.5 text-orange-400" />
+                          {(track.playsCount || 0).toLocaleString()} plays
+                        </span>
+
                         <button
                           onClick={() => playTrack(track)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-                            <Play className="w-4 h-4 text-white ml-0.5" />
+                          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white">
+                            <Play className="w-4 h-4 ml-0.5 fill-current" />
                           </div>
                         </button>
-                        <span className="text-sm text-muted-foreground">
+
+                        <button
+                          onClick={() => setShareTrack(track)}
+                          className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                          title="Deel naar socials"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+
+                        <span className="text-xs text-muted-foreground w-12 text-right hidden sm:inline">
                           {track.durationFormatted}
                         </span>
                       </div>
@@ -393,9 +433,9 @@ export function Library() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">No liked tracks yet</p>
+                  <p className="text-muted-foreground">Nog geen gelikete nummers</p>
                   <Button asChild className="mt-4 rounded-full">
-                    <Link to="/discover">Discover Music</Link>
+                    <Link to="/charts">Ontdek Top 20</Link>
                   </Button>
                 </div>
               )}
@@ -603,6 +643,11 @@ export function Library() {
         </div>
       </main>
       <AddToPlaylistDialog />
+      <ShareTrackModal
+        isOpen={!!shareTrack}
+        onClose={() => setShareTrack(null)}
+        track={shareTrack}
+      />
       <AudioPlayer />
     </div>
   );

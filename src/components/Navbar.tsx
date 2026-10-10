@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic, Coins, CreditCard } from 'lucide-react';
+import { Search, Upload, Menu, X, User, Settings, LogOut, Bell, ListMusic, Coins, CreditCard, Trophy, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,15 +11,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DirectMessageModal } from '@/components/DirectMessageModal';
 import { useAuth } from '@/context/AuthContext';
 import { mockNotifications } from '@/data/mockData';
 import { addRecentSearch } from '@/lib/searchHistory';
 
 export function Navbar() {
-  const { user, isAuthenticated, logout, credits, plan } = useAuth();
+  const { user, isAuthenticated, logout, credits, plan, directMessages } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDMOpen, setIsDMOpen] = useState(false);
 
   const unreadNotifications = mockNotifications.filter(n => !n.read).length;
 
@@ -43,7 +45,7 @@ export function Navbar() {
                 <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
               </svg>
             </div>
-            <span className="text-xl font-bold hidden sm:block">AudiCloudi</span>
+            <span className="text-xl font-bold hidden sm:block">CloudiAudi</span>
           </Link>
 
           {/* Search Bar */}
@@ -64,6 +66,12 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-1">
             <Button variant="ghost" asChild>
               <Link to="/">Home</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/charts" className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300">
+                <Trophy className="w-4 h-4" />
+                <span>Top 20</span>
+              </Link>
             </Button>
             <Button variant="ghost" asChild>
               <Link to="/library">Library</Link>
@@ -95,6 +103,20 @@ export function Navbar() {
                   <span>{(credits || 0).toLocaleString()}</span>
                   <span className="hidden sm:inline text-orange-400/80 font-normal">credits</span>
                 </Link>
+
+                {/* Direct Messages */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  onClick={() => setIsDMOpen(true)}
+                  title="Privé berichten"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  {directMessages.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
+                  )}
+                </Button>
 
                 {/* Notifications */}
                 <Button
@@ -138,6 +160,16 @@ export function Navbar() {
                       </span>
                     </div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsDMOpen(true)}>
+                      <MessageSquare className="mr-2 h-4 w-4 text-orange-400" />
+                      Privé Berichten
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/charts">
+                        <Trophy className="mr-2 h-4 w-4 text-amber-400" />
+                        Top 20 Hitlijst
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/library?tab=uploads">
                         <ListMusic className="mr-2 h-4 w-4" />
@@ -222,6 +254,12 @@ export function Navbar() {
               <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link to="/">Home</Link>
               </Button>
+              <Button variant="ghost" className="w-full justify-start text-amber-400 font-semibold" asChild>
+                <Link to="/charts" className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  Top 20 Hitlijst
+                </Link>
+              </Button>
               <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link to="/library">Library</Link>
               </Button>
@@ -229,12 +267,25 @@ export function Navbar() {
                 <Link to="/pricing">Prijzen & Credits</Link>
               </Button>
               {isAuthenticated && (
-                <Button variant="ghost" className="w-full justify-start" asChild>
-                  <Link to="/upload">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload
-                  </Link>
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsDMOpen(true);
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2 text-orange-400" />
+                    Privé Berichten
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" asChild>
+                    <Link to="/upload">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
 
@@ -252,6 +303,9 @@ export function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Direct Message Modal */}
+      <DirectMessageModal isOpen={isDMOpen} onClose={() => setIsDMOpen(false)} />
     </nav>
   );
 }

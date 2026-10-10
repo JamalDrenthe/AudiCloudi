@@ -31,6 +31,7 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { AddToPlaylistDialog } from '@/components/AddToPlaylistDialog';
 import { TrackAnalyticsChart } from '@/components/TrackAnalyticsChart';
 import { TrackCover } from '@/components/TrackCover';
+import { ShareTrackModal } from '@/components/ShareTrackModal';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { usePlaylist } from '@/context/PlaylistContext';
@@ -202,24 +203,24 @@ function CommentItem({ comment, currentUser, onEdit, onDelete }: CommentItemProp
 
 export function TrackDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAuthenticated, followUser, unfollowUser, isFollowing } = useAuth();
+  const { user, isAuthenticated, followUser, unfollowUser, isFollowing, toggleLike, isLiked: checkIsLiked, toggleRepost, isReposted: checkIsReposted } = useAuth();
   const { playTrack, currentTrack, isPlaying, togglePlay, addToQueue } = usePlayer();
   const { openAddToPlaylistModal } = usePlaylist();
   const { tracks: allTracks, getTrackById: getContextTrack } = useTracks();
-  const [isLiked, setIsLiked] = useState(false);
-  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
-  const [isReposted, setIsReposted] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
   const track = id ? (getContextTrack(id) || allTracks.find(t => t.id === id) || getTrackById(id)) : undefined;
+  const isLiked = track ? checkIsLiked(track.id) : false;
+  const isReposted = track ? checkIsReposted(track.id) : false;
   const trackUser = track
     ? (track.user || getUserById(track.userId) || {
         id: track.userId,
         email: track.userEmail || '',
         username: track.userName?.toLowerCase().replace(/\s+/g, '') || 'artist',
         displayName: track.userName || 'Artist',
-        bio: 'Muzikant op AudiCloudi',
+        bio: 'Muzikant op CloudiAudi',
         avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=400&fit=crop',
         role: 'user',
         createdAt: track.createdAt,
@@ -463,35 +464,48 @@ export function TrackDetail() {
                     variant="outline"
                     size="icon"
                     className={`rounded-full transition-all duration-200 active:scale-90 ${
-                      isLiked ? 'text-orange-500 border-orange-500 bg-orange-500/10' : 'hover:border-orange-500/50'
+                      isLiked ? 'text-rose-500 border-rose-500 bg-rose-500/10' : 'hover:border-rose-500/50'
                     }`}
                     onClick={() => {
-                      const nextLiked = !isLiked;
-                      setIsLiked(nextLiked);
-                      if (nextLiked) {
-                        setIsLikeAnimating(true);
+                      if (!isAuthenticated) {
+                        toast.error('Log eerst in om te liken.');
+                        return;
                       }
+                      toggleLike(track.id);
                     }}
                     title={isLiked ? "Unlike" : "Like"}
                   >
                     <Heart
-                      onAnimationEnd={() => setIsLikeAnimating(false)}
                       className={`w-5 h-5 transition-all duration-300 ease-out ${
-                        isLiked ? 'fill-current text-orange-500' : ''
-                      } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
+                        isLiked ? 'fill-current text-rose-500' : ''
+                      }`}
                     />
                   </Button>
                   {isAuthenticated && (
                     <Button
                       variant="outline"
                       size="icon"
-                      className={`rounded-full ${isReposted ? 'text-orange-500 border-orange-500' : ''}`}
-                      onClick={() => setIsReposted(!isReposted)}
+                      className={`rounded-full ${isReposted ? 'text-emerald-400 border-emerald-400 bg-emerald-500/10' : ''}`}
+                      onClick={() => {
+                        const res = toggleRepost(track.id);
+                        if (res) toast.success(`"${track.title}" herplaatst op je profiel!`);
+                        else toast.info('Herplaatsing verwijderd');
+                      }}
+                      title={isReposted ? "Herplaatst" : "Herplaatsen"}
                     >
                       <Repeat className="w-5 h-5" />
                     </Button>
                   )}
-                  <Button variant="outline" size="icon" className="rounded-full" onClick={handleDownload}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full hover:border-orange-500/50"
+                    onClick={() => setIsShareModalOpen(true)}
+                    title="Deel naar socials"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="rounded-full" onClick={handleDownload} title="Download">
                     <Download className="w-5 h-5" />
                   </Button>
                   <DropdownMenu>
@@ -507,12 +521,9 @@ export function TrackDetail() {
                       <DropdownMenuItem onClick={() => openAddToPlaylistModal(track)}>
                         Toevoegen aan afspeellijst
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        navigator.clipboard.writeText(window.location.href);
-                        toast.success('Link gekopieerd!');
-                      }}>
+                      <DropdownMenuItem onClick={() => setIsShareModalOpen(true)}>
                         <Share2 className="w-4 h-4 mr-2" />
-                        Share
+                        Deel naar Socials
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Flag className="w-4 h-4 mr-2" />
@@ -740,6 +751,11 @@ export function TrackDetail() {
         </div>
       </main>
       <AddToPlaylistDialog />
+      <ShareTrackModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        track={track}
+      />
       <AudioPlayer />
     </div>
   );

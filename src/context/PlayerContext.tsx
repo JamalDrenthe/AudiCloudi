@@ -19,6 +19,7 @@ interface PlayerContextType extends PlayerState {
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   playQueue: (tracks: Track[], startIndex?: number) => void;
+  shufflePlayQueue: (tracks: Track[]) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -228,6 +229,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       });
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cloudiaudi:track_played', { detail: { trackId: track.id } }));
+    }
+
     setState(prev => ({
       ...prev,
       currentTrack: track,
@@ -395,12 +400,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const playQueue = (tracks: Track[], startIndex: number = 0) => {
     if (tracks.length === 0) return;
+    playTrack(tracks[startIndex]);
     setState(prev => ({
       ...prev,
       queue: tracks,
       queueIndex: startIndex,
       currentTrack: tracks[startIndex],
       isPlaying: true,
+      currentTime: 0,
+    }));
+  };
+
+  const shufflePlayQueue = (tracks: Track[]) => {
+    if (tracks.length === 0) return;
+    const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+    playTrack(shuffled[0]);
+    setState(prev => ({
+      ...prev,
+      queue: shuffled,
+      queueIndex: 0,
+      currentTrack: shuffled[0],
+      isPlaying: true,
+      isShuffled: true,
       currentTime: 0,
     }));
   };
@@ -424,6 +445,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleShuffle,
         toggleRepeat,
         playQueue,
+        shufflePlayQueue,
       }}
     >
       {children}

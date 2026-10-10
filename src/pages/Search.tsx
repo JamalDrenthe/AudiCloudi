@@ -9,6 +9,10 @@ import {
   Trash2,
   Sparkles,
   Compass,
+  Headphones,
+  UserPlus,
+  UserCheck,
+  Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,10 +28,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { TrackCover } from '@/components/TrackCover';
+import { ShareTrackModal } from '@/components/ShareTrackModal';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { useTracks } from '@/context/TrackContext';
 import { mockUsers, mockPlaylists, getUserById } from '@/data/mockData';
+import type { Track } from '@/types';
 import {
   loadRecentSearchesWithFirestore,
   addRecentSearch,
@@ -57,7 +63,7 @@ export function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const { playTrack } = usePlayer();
-  const { user } = useAuth();
+  const { user, followUser, unfollowUser, isFollowing: checkIsFollowing, isAuthenticated } = useAuth();
   const { tracks: allTracks } = useTracks();
 
   const [searchQuery, setSearchQuery] = useState(query);
@@ -66,6 +72,7 @@ export function Search() {
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
+  const [shareTrack, setShareTrack] = useState<Track | null>(null);
 
   // Load recent searches from localStorage / Firestore
   useEffect(() => {
@@ -380,40 +387,60 @@ export function Search() {
                         return (
                           <div
                             key={track.id}
-                            className="flex items-center gap-4 p-3 rounded-lg hover:bg-card transition-colors group"
+                            className="flex items-center gap-3 sm:gap-4 p-3 rounded-xl hover:bg-card transition-colors group"
                           >
-                            <span className="w-6 text-center text-sm text-muted-foreground">
+                            <span className="w-6 text-center text-sm text-muted-foreground shrink-0">
                               {index + 1}
                             </span>
-                            <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-muted">
+                            <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
                               <TrackCover track={track} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <Link
                                 to={`/track/${track.id}`}
-                                className="font-medium truncate block hover:text-orange-500 transition-colors"
+                                className="font-semibold text-sm truncate block hover:text-orange-500 transition-colors"
                               >
                                 {track.title}
                               </Link>
-                              <Link
-                                to={`/user/${track.userId}`}
-                                className="text-sm text-muted-foreground hover:text-orange-500 transition-colors"
-                              >
-                                {artist?.displayName || track.userName || 'Artist'}
-                              </Link>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                                <Link
+                                  to={`/user/${track.userId}`}
+                                  className="hover:text-orange-500 transition-colors truncate"
+                                >
+                                  {artist?.displayName || track.userName || 'Artist'}
+                                </Link>
+                                <span>•</span>
+                                <span>{track.genre}</span>
+                              </div>
                             </div>
-                            <span className="text-sm text-muted-foreground hidden sm:block">
-                              {track.genre}
-                            </span>
+
+                            {/* Plays Count Badge */}
+                            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                              <Headphones className="w-3.5 h-3.5 text-orange-400" />
+                              <span className="font-medium text-foreground">
+                                {(track.playsCount || 0).toLocaleString()}
+                              </span>
+                              <span>plays</span>
+                            </div>
+
                             <button
                               onClick={() => playTrack(track)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                             >
                               <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-                                <Play className="w-4 h-4 text-white ml-0.5" />
+                                <Play className="w-4 h-4 text-white ml-0.5 fill-current" />
                               </div>
                             </button>
-                            <span className="text-sm text-muted-foreground">
+
+                            <button
+                              onClick={() => setShareTrack(track)}
+                              className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
+                              title="Deel naar socials"
+                            >
+                              <Share2 className="w-4 h-4" />
+                            </button>
+
+                            <span className="text-xs text-muted-foreground w-12 text-right hidden sm:inline shrink-0">
                               {track.durationFormatted}
                             </span>
                           </div>
@@ -430,24 +457,65 @@ export function Search() {
                 <TabsContent value="artists">
                   {users.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
-                      {users.map((user) => (
-                        <Link
-                          key={user.id}
-                          to={`/user/${user.id}`}
-                          className="text-center group"
-                        >
-                          <Avatar className="w-24 h-24 mx-auto mb-3 ring-4 ring-transparent group-hover:ring-orange-500/30 transition-all">
-                            <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                            <AvatarFallback>{user.displayName[0]}</AvatarFallback>
-                          </Avatar>
-                          <h3 className="font-medium group-hover:text-orange-500 transition-colors">
-                            {user.displayName}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {user.followersCount.toLocaleString()} followers
-                          </p>
-                        </Link>
-                      ))}
+                      {users.map((artistUser) => {
+                        const isFollowed = checkIsFollowing(artistUser.id);
+                        return (
+                          <div
+                            key={artistUser.id}
+                            className="bg-card/50 border border-border/50 hover:border-orange-500/30 rounded-2xl p-4 text-center group flex flex-col justify-between transition-all hover:-translate-y-1"
+                          >
+                            <Link to={`/user/${artistUser.id}`} className="block">
+                              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-3 ring-4 ring-transparent group-hover:ring-orange-500/30 transition-all">
+                                <AvatarImage src={artistUser.avatarUrl} alt={artistUser.displayName} />
+                                <AvatarFallback>{artistUser.displayName[0]}</AvatarFallback>
+                              </Avatar>
+                              <h3 className="font-semibold text-sm group-hover:text-orange-500 transition-colors truncate">
+                                {artistUser.displayName}
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {(artistUser.followersCount || 0).toLocaleString()} volgers
+                              </p>
+                            </Link>
+
+                            <div className="mt-3">
+                              <Button
+                                size="sm"
+                                variant={isFollowed ? "secondary" : "default"}
+                                className={`w-full h-8 rounded-full text-xs font-medium ${
+                                  isFollowed
+                                    ? "bg-secondary text-muted-foreground"
+                                    : "bg-orange-500 hover:bg-orange-600 text-white"
+                                }`}
+                                onClick={() => {
+                                  if (!isAuthenticated) {
+                                    toast.error('Log eerst in om te volgen.');
+                                    return;
+                                  }
+                                  if (isFollowed) {
+                                    unfollowUser(artistUser.id);
+                                    toast.success(`${artistUser.displayName} ontvolgd`);
+                                  } else {
+                                    followUser(artistUser.id);
+                                    toast.success(`${artistUser.displayName} gevolgd!`);
+                                  }
+                                }}
+                              >
+                                {isFollowed ? (
+                                  <>
+                                    <UserCheck className="w-3.5 h-3.5 mr-1" />
+                                    Volgend
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserPlus className="w-3.5 h-3.5 mr-1" />
+                                    Volgen
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-12">
@@ -492,6 +560,11 @@ export function Search() {
           )}
         </div>
       </main>
+      <ShareTrackModal
+        isOpen={!!shareTrack}
+        onClose={() => setShareTrack(null)}
+        track={shareTrack}
+      />
       <AudioPlayer />
     </div>
   );

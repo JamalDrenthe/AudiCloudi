@@ -1,3 +1,10 @@
+export interface UserSocials {
+  tiktok?: string;
+  youtube?: string;
+  instagram?: string;
+  x?: string;
+}
+
 // User types
 export interface User {
   id: string;
@@ -18,6 +25,20 @@ export interface User {
   followingCount: number;
   tracksCount: number;
   isFollowing?: boolean;
+  socials?: UserSocials;
+  reposts?: string[];
+  likes?: string[];
+}
+
+export interface DirectMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  recipientIds: string[];
+  recipientNames: string[];
+  content: string;
+  createdAt: string;
 }
 
 export interface AuthState {

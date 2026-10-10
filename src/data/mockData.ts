@@ -79,9 +79,9 @@ export const mockUsers: User[] = [
   },
   {
     id: '6',
-    email: 'admin@audicloudi.com',
+    email: 'admin@cloudiaudi.com',
     username: 'admin',
-    displayName: 'AudiCloudi Admin',
+    displayName: 'CloudiAudi Admin',
     bio: 'Platform administrator',
     avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop',
     bannerUrl: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',

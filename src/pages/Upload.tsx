@@ -472,9 +472,9 @@ export function Upload() {
           id: item.id,
           userId: user?.id || 'admin_jamal',
           title: item.title.trim(),
-          description: `Geproduceerd met AudiCloudi. Genre: ${item.genre}.`,
+          description: `Geproduceerd met CloudiAudi. Genre: ${item.genre}.`,
           genre: item.genre,
-          tags: [item.genre.toLowerCase(), 'audicloudi', item.isExplicit ? 'explicit' : 'clean'],
+          tags: [item.genre.toLowerCase(), 'cloudiaudi', item.isExplicit ? 'explicit' : 'clean'],
           duration: item.duration,
           durationFormatted: item.durationFormatted,
           waveformData: Array.from({ length: 40 }, () => Math.floor(Math.random() * 80) + 20),
@@ -506,7 +506,7 @@ export function Upload() {
 
         const newCollection = await createPlaylist(
           titleToUse,
-          collectionDescription.trim() || `${collectionType === 'album' ? 'Album' : 'Afspeellijst'} uitgebracht op AudiCloudi.`,
+          collectionDescription.trim() || `${collectionType === 'album' ? 'Album' : 'Afspeellijst'} uitgebracht op CloudiAudi.`,
           !isPrivate,
           createdTrackIds,
           finalCoverUrl,
@@ -549,7 +549,7 @@ export function Upload() {
           <div className="max-w-md mx-auto text-center bg-card border border-border p-8 rounded-2xl">
             <h1 className="text-2xl font-bold">Inloggen vereist</h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              Je moet ingelogd zijn om muziek te kunnen uploaden naar AudiCloudi.
+              Je moet ingelogd zijn om muziek te kunnen uploaden naar CloudiAudi.
             </p>
             <Button asChild className="mt-6 rounded-full bg-orange-500 hover:bg-orange-600 text-white">
               <Link to="/login">Inloggen</Link>

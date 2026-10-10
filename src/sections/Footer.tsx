@@ -41,7 +41,7 @@ export function Footer() {
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                 </svg>
               </div>
-              <span className="text-xl font-bold">AudiCloudi</span>
+              <span className="text-xl font-bold">CloudiAudi</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-4">
               Discover, stream, and share music freely. No subscriptions, no limits.
@@ -144,7 +144,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2025 AudiCloudi. All rights reserved.
+            © 2025 CloudiAudi. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">

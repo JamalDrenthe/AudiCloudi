@@ -1,19 +1,21 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Heart, Users, UserPlus, Check, Sparkles, Volume2 } from 'lucide-react';
+import { Play, Heart, Users, UserPlus, Check, Sparkles, Volume2, Share2, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlayer } from '@/context/PlayerContext';
 import { useAuth } from '@/context/AuthContext';
 import { getTracksByFollowingIds, getUserById, mockUsers } from '@/data/mockData';
 import { TrackCover } from '@/components/TrackCover';
+import { ShareTrackModal } from '@/components/ShareTrackModal';
 import type { Track } from '@/types';
 import { toast } from 'sonner';
 
-function FeedTrackCard({ track }: { track: Track }) {
+function FeedTrackCard({ track, onShare }: { track: Track; onShare: (t: Track) => void }) {
   const { playTrack, currentTrack, isPlaying } = usePlayer();
-  const [isLiked, setIsLiked] = useState(false);
-  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const { toggleLike, isLiked: checkIsLiked, toggleRepost, isReposted: checkIsReposted, isAuthenticated } = useAuth();
+  const isLiked = checkIsLiked(track.id);
+  const isReposted = checkIsReposted(track.id);
   const [isHovered, setIsHovered] = useState(false);
 
   const artist = getUserById(track.userId);
@@ -110,34 +112,70 @@ function FeedTrackCard({ track }: { track: Track }) {
           </Link>
         </div>
 
-        {/* Bottom row: Plays & Like Button */}
+        {/* Bottom row: Plays & Actions */}
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50 text-xs text-muted-foreground">
-          <span>{track.playsCount.toLocaleString()} plays</span>
+          <span className="font-medium">{(track.playsCount || 0).toLocaleString()} plays</span>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-orange-500/10 active:scale-90 transition-all duration-200"
-            onClick={(e: React.MouseEvent) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const nextState = !isLiked;
-              setIsLiked(nextState);
-              if (nextState) {
-                setIsLikeAnimating(true);
-              }
-            }}
-            title={isLiked ? "Unlike" : "Like"}
-          >
-            <Heart
-              onAnimationEnd={() => setIsLikeAnimating(false)}
-              className={`w-4 h-4 transition-all duration-300 ease-out ${
-                isLiked
-                  ? 'fill-orange-500 text-orange-500'
-                  : 'text-muted-foreground hover:text-orange-400'
-              } ${isLikeAnimating ? 'animate-heart-pop' : ''}`}
-            />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 hover:bg-rose-500/10 active:scale-90 transition-all duration-200 ${
+                isLiked ? 'text-rose-500' : 'text-muted-foreground'
+              }`}
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isAuthenticated) {
+                  toast.error('Log eerst in om te liken.');
+                  return;
+                }
+                toggleLike(track.id);
+              }}
+              title={isLiked ? "Unlike" : "Like"}
+            >
+              <Heart
+                className="w-3.5 h-3.5"
+                fill={isLiked ? 'currentColor' : 'none'}
+              />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 hover:bg-emerald-500/10 transition-all duration-200 ${
+                isReposted ? 'text-emerald-400' : 'text-muted-foreground'
+              }`}
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isAuthenticated) {
+                  toast.error('Log eerst in om te herplaatsen.');
+                  return;
+                }
+                const res = toggleRepost(track.id);
+                if (res) toast.success(`"${track.title}" herplaatst op je profiel!`);
+                else toast.info('Herplaatsing verwijderd');
+              }}
+              title={isReposted ? "Herplaatst" : "Herplaatsen"}
+            >
+              <Repeat2 className="w-3.5 h-3.5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onShare(track);
+              }}
+              title="Deel naar socials"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -147,6 +185,7 @@ function FeedTrackCard({ track }: { track: Track }) {
 export function FollowingFeed() {
   const { followingIds, followUser, isFollowing } = useAuth();
   const { playQueue } = usePlayer();
+  const [shareTrack, setShareTrack] = useState<Track | null>(null);
 
   const feedTracks = useMemo(() => {
     return getTracksByFollowingIds(followingIds);
@@ -197,7 +236,11 @@ export function FollowingFeed() {
         {feedTracks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {feedTracks.map((track) => (
-              <FeedTrackCard key={track.id} track={track} />
+              <FeedTrackCard
+                key={track.id}
+                track={track}
+                onShare={(t) => setShareTrack(t)}
+              />
             ))}
           </div>
         ) : (
@@ -264,6 +307,12 @@ export function FollowingFeed() {
           </div>
         )}
       </div>
+
+      <ShareTrackModal
+        isOpen={!!shareTrack}
+        onClose={() => setShareTrack(null)}
+        track={shareTrack}
+      />
     </section>
   );
 }

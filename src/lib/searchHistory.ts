@@ -1,13 +1,14 @@
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-const STORAGE_KEY = 'audicloudi_recent_searches';
+const STORAGE_KEY = 'cloudiaudi_recent_searches';
+const FALLBACK_STORAGE_KEY = 'audicloudi_recent_searches';
 const MAX_SEARCHES = 12;
 
 export function getLocalRecentSearches(): string[] {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(FALLBACK_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {

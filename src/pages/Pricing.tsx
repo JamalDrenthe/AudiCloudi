@@ -251,7 +251,7 @@ export function Pricing() {
               Hoe werkt het credit-systeem?
             </h2>
             <p className="text-muted-foreground">
-              Credits zijn de valuta binnen AudiCloudi. Je credits staan synchroon met je abonnement en vervallen nooit: ongebruikte credits neem je elke maand automatisch mee.
+              Credits zijn de valuta binnen CloudiAudi. Je credits staan synchroon met je abonnement en vervallen nooit: ongebruikte credits neem je elke maand automatisch mee.
             </p>
           </div>
 
