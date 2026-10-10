@@ -1,14 +1,59 @@
 rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model & Architecture
+// ===============================================================
+//
+// Role Architecture (5 Distinct Roles via auth token claims):
+//   1. Super Admin: request.auth.token.role == 'super_admin' (or bootstrap email js.drenthe@gmail.com)
+//      - Global read and write access across all documents and collections.
+//   2. Record Labels: request.auth.token.role == 'record_label'
+//      - Read & manage tenant metadata at /tenants/{label_id} where token.tenant_id == label_id.
+//      - Read tracks, interactions, and telemetry of artists where track.tenant_id == token.tenant_id.
+//   3. Artists / Producers: request.auth.token.role == 'artist_producer'
+//      - Read & update own user document at /users/{userId}.
+//      - Read & write own tracks at /tracks/{track_id} where auth.uid matches artist_id or userId.
+//      - Access subcollections: telemetry, diagnostics, and private split-sheets.
+//   4. Regular Listeners / Buyers: request.auth.token.role == 'listener_user'
+//      - Read public tracks, waveform data, comments, and public artist profiles.
+//      - Prohibited from reading/writing algorithmic attribution, neural weights, and private royalty splits.
+//      - Can create interaction events at /tracks/{track_id}/interactions/{interaction_id}.
+//   5. Visitors / Guests: unauthenticated / guest users
+//      - Read public tracks metadata and public artist profiles.
+//
+// Collections:
+//   - /users/{userId}: User profile metadata, stats, and search history.
+//   - /tracks/{track_id}: Music tracks, commercial tiers, waveform, licensing, and audio URL.
+//     - /tracks/{track_id}/interactions/{interactionId}: Event stream (plays, skips, likes, shares).
+//     - /tracks/{track_id}/telemetry/{telemetryId}: Diagnostics & telemetry metrics (artist/label/admin only).
+//     - /tracks/{track_id}/private_splits/{splitId}: Confidential royalty splits (artist/label/admin only).
+//     - /tracks/{track_id}/royalty_splits/{splitId}: Confidential royalty split-sheets (artist/label/admin only).
+//     - /tracks/{track_id}/algorithmic_attribution/{attrId}: Internal AI attribution (artist/label/admin read, super_admin write).
+//     - /tracks/{track_id}/neural_weights/{weightId}: Proprietary AI weights (super_admin only).
+//   - /tenants/{label_id}: Tenant & record label metadata, roster mapping.
+//   - /likes/{likeId}: Track like markers.
+//   - /comments/{commentId}: Track comments.
+//   - /playlists/{playlistId}: User playlists & albums.
+//   - /follows/{followId}: User social follower graph.
+//   - /direct_messages/{messageId}: Private messages between users.
+//   - /reports/{reportId}: Content moderation reports.
+//   - /config/{configId}: System runtime configuration (super admin only).
+//   - /admins/{adminId}: Admin directory (super admin only).
+//   - /test/{testId}: Connection health probe.
+//
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default Deny
+
+    // Default Deny Root
     match /{document=**} {
       allow read, write: if false;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
+    // ===============================================================
+    // Global Helper Functions
+    // ===============================================================
 
     function incoming() {
       return request.resource.data;
@@ -22,103 +67,647 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-.:]+$');
+    }
+
+    function hasRole(roleName) {
+      return isSignedIn() &&
+        'role' in request.auth.token &&
+        request.auth.token.role == roleName;
+    }
+
+    function isSuperAdmin() {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        hasRole('super_admin') ||
         request.auth.token.email == 'js.drenthe@gmail.com'
       );
     }
 
+    function isRecordLabel() {
+      return isSignedIn() && hasRole('record_label');
+    }
+
+    function isArtistProducer() {
+      return isSignedIn() && (hasRole('artist_producer') || isSuperAdmin());
+    }
+
+    function isListenerUser() {
+      return isSignedIn() && hasRole('listener_user');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUrl(url) {
+      return url is string &&
+        url.size() <= 2048 &&
+        (url.matches('^https?://.*') ||
+         url.matches('^blob:.*') ||
+         url.matches('^data:.*') ||
+         url.matches('^gs://.*') ||
+         url.matches('^/.*'));
+    }
+
+    function isValidAudioUrl(url) {
+      return url is string &&
+        url.size() >= 1 &&
+        url.size() <= 2048 &&
+        (url.matches('^https?://.*') ||
+         url.matches('^blob:.*') ||
+         url.matches('^data:audio/.*') ||
+         url.matches('^gs://.*') ||
+         url.matches('^/.*'));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Track & Tenant Association Helpers
+    // ===============================================================
+
+    function getTrack(trackId) {
+      return get(/databases/$(database)/documents/tracks/$(trackId)).data;
+    }
+
+    function existsTrack(trackId) {
+      return exists(/databases/$(database)/documents/tracks/$(trackId));
+    }
+
+    function trackBelongsToArtist(trackData) {
+      return isSignedIn() && (
+        ('artist_id' in trackData && trackData.artist_id is string && trackData.artist_id == request.auth.uid) ||
+        ('userId' in trackData && trackData.userId is string && trackData.userId == request.auth.uid)
+      );
+    }
+
+    function trackBelongsToLabel(trackData) {
+      return isRecordLabel() &&
+        'tenant_id' in request.auth.token &&
+        'tenant_id' in trackData &&
+        trackData.tenant_id is string &&
+        trackData.tenant_id == request.auth.token.tenant_id;
+    }
+
+    function isParentTrackArtist(trackId) {
+      return existsTrack(trackId) && trackBelongsToArtist(getTrack(trackId));
+    }
+
+    function isParentTrackLabel(trackId) {
+      return existsTrack(trackId) && trackBelongsToLabel(getTrack(trackId));
+    }
+
+    function canAccessRestrictedTrackData(trackId) {
+      return isSuperAdmin() ||
+        (isArtistProducer() && isParentTrackArtist(trackId)) ||
+        isParentTrackLabel(trackId);
+    }
+
+    function isPublicTrack(data) {
+      return (!('isPrivate' in data) || data.isPrivate == false) &&
+             (!('status' in data) || data.status == 'published' || data.status == 'ready');
+    }
+
+    function canReadTrackDocument(data) {
+      return isSuperAdmin() ||
+             isPublicTrack(data) ||
+             trackBelongsToArtist(data) ||
+             trackBelongsToLabel(data);
+    }
+
+    function areTrackOwnersUnchanged() {
+      return (!('artist_id' in incoming()) || !('artist_id' in resource.data) || incoming().artist_id == resource.data.artist_id) &&
+             (!('userId' in incoming()) || !('userId' in resource.data) || incoming().userId == resource.data.userId) &&
+             (!('tenant_id' in incoming()) || !('tenant_id' in resource.data) || incoming().tenant_id == resource.data.tenant_id) &&
+             (!('createdAt' in incoming()) || !('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt) &&
+             (!('id' in incoming()) || !('id' in resource.data) || incoming().id == resource.data.id);
+    }
+
+    function isTrackPlayIncrement() {
+      return incoming().diff(resource.data).affectedKeys().hasOnly(['playsCount']) &&
+             resource.data.playsCount is number &&
+             incoming().playsCount is number &&
+             incoming().playsCount == resource.data.playsCount + 1;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
     function isValidUser(data) {
-      return data.keys().hasAll(['id', 'email', 'username', 'displayName', 'role']) &&
-        data.id is string &&
-        data.email is string && data.email.size() <= 100 &&
-        data.username is string && data.username.size() <= 50 && data.username.matches('^[a-zA-Z0-9_]+$') &&
-        data.displayName is string && data.displayName.size() <= 100 &&
-        data.role in ['user', 'moderator', 'admin'];
+      return hasOnlyAllowedFields([
+        'id', 'email', 'username', 'displayName', 'bio', 'avatarUrl', 'bannerUrl',
+        'role', 'plan', 'credits', 'monthlyUploadsCount', 'monthlyUploadsLimit',
+        'createdAt', 'updatedAt', 'followersCount', 'followingCount', 'tracksCount',
+        'socials', 'reposts', 'likes', 'recentSearches', 'tenant_id'
+      ]) &&
+      ('id' in data && data.id is string && data.id.size() > 0 && data.id.size() <= 128) &&
+      ('email' in data && data.email is string && data.email.size() <= 100) &&
+      ('username' in data && data.username is string && data.username.size() >= 1 && data.username.size() <= 50) &&
+      ('displayName' in data && data.displayName is string && data.displayName.size() <= 100) &&
+      ('role' in data && data.role is string &&
+        data.role in ['user', 'moderator', 'admin', 'listener_user', 'artist_producer', 'record_label', 'super_admin']) &&
+      (!('bio' in data) || (data.bio is string && data.bio.size() <= 2000)) &&
+      (!('avatarUrl' in data) || isValidUrl(data.avatarUrl)) &&
+      (!('bannerUrl' in data) || isValidUrl(data.bannerUrl)) &&
+      (!('plan' in data) || (data.plan is string && data.plan in ['gebruiker', 'artiest', 'label'])) &&
+      (!('credits' in data) || (data.credits is number && data.credits >= 0)) &&
+      (!('monthlyUploadsCount' in data) || (data.monthlyUploadsCount is number && data.monthlyUploadsCount >= 0)) &&
+      (!('monthlyUploadsLimit' in data) || (data.monthlyUploadsLimit is number && data.monthlyUploadsLimit >= 0)) &&
+      (!('followersCount' in data) || (data.followersCount is number && data.followersCount >= 0)) &&
+      (!('followingCount' in data) || (data.followingCount is number && data.followingCount >= 0)) &&
+      (!('tracksCount' in data) || (data.tracksCount is number && data.tracksCount >= 0)) &&
+      (!('socials' in data) || (data.socials is map && data.socials.size() <= 10)) &&
+      (!('reposts' in data) || (data.reposts is list && data.reposts.size() <= 500)) &&
+      (!('likes' in data) || (data.likes is list && data.likes.size() <= 1000)) &&
+      (!('recentSearches' in data) || (data.recentSearches is list && data.recentSearches.size() <= 20)) &&
+      (!('tenant_id' in data) || (data.tenant_id is string && data.tenant_id.size() <= 128)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidTrack(data) {
-      return data.keys().hasAll(['id', 'userId', 'title', 'audioUrl']) &&
-        data.id is string && data.id.size() <= 128 &&
-        data.userId is string && data.userId.size() <= 128 &&
-        data.title is string && data.title.size() <= 150 &&
-        data.audioUrl is string && data.audioUrl.size() <= 2000;
+      return hasOnlyAllowedFields([
+        'id', 'userId', 'artist_id', 'userEmail', 'userName', 'title', 'description',
+        'genre', 'tags', 'duration', 'durationFormatted', 'waveformData', 'audioUrl',
+        'coverUrl', 'coverVideoUrl', 'coverType', 'isMastered', 'albumId', 'albumTitle',
+        'isPrivate', 'isExplicit', 'license', 'playsCount', 'likesCount', 'repostsCount',
+        'commentsCount', 'createdAt', 'updatedAt', 'status', 'commercial_tier',
+        'commercial_tiers', 'tenant_id'
+      ]) &&
+      // Isolation directive: Confidential models must NOT be placed on root track document
+      !('algorithmic_attribution' in data) &&
+      !('neural_weights' in data) &&
+      !('royalty_splits' in data) &&
+      !('private_splits' in data) &&
+      // Required core fields
+      ('id' in data && data.id is string && data.id.size() > 0 && data.id.size() <= 128) &&
+      ('title' in data && data.title is string && data.title.size() >= 1 && data.title.size() <= 150) &&
+      ('genre' in data && data.genre is string && data.genre.size() >= 1 && data.genre.size() <= 50) &&
+      ('audioUrl' in data && isValidAudioUrl(data.audioUrl)) &&
+      (('artist_id' in data && data.artist_id is string && data.artist_id.size() <= 128) ||
+       ('userId' in data && data.userId is string && data.userId.size() <= 128)) &&
+      // Optional fields type safety and size limits
+      (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+      (!('userEmail' in data) || (data.userEmail is string && data.userEmail.size() <= 100)) &&
+      (!('userName' in data) || (data.userName is string && data.userName.size() <= 100)) &&
+      (!('tags' in data) || (data.tags is list && data.tags.size() <= 20)) &&
+      (!('duration' in data) || (data.duration is number && data.duration >= 0)) &&
+      (!('durationFormatted' in data) || (data.durationFormatted is string && data.durationFormatted.size() <= 20)) &&
+      (!('waveformData' in data) || (data.waveformData is list && data.waveformData.size() <= 300)) &&
+      (!('coverUrl' in data) || isValidUrl(data.coverUrl)) &&
+      (!('coverVideoUrl' in data) || isValidUrl(data.coverVideoUrl)) &&
+      (!('coverType' in data) || (data.coverType is string && data.coverType in ['image', 'video'])) &&
+      (!('isMastered' in data) || (data.isMastered is bool)) &&
+      (!('albumId' in data) || (data.albumId is string && data.albumId.size() <= 128)) &&
+      (!('albumTitle' in data) || (data.albumTitle is string && data.albumTitle.size() <= 150)) &&
+      (!('isPrivate' in data) || (data.isPrivate is bool)) &&
+      (!('isExplicit' in data) || (data.isExplicit is bool)) &&
+      (!('license' in data) || (data.license is string &&
+        data.license in ['all-rights-reserved', 'cc-by', 'cc-by-sa', 'cc-by-nc', 'cc-by-nd', 'public-domain'])) &&
+      (!('status' in data) || (data.status is string &&
+        data.status in ['draft', 'processing', 'published', 'ready', 'failed', 'suppressed', 'archived'])) &&
+      (!('commercial_tier' in data) || (data.commercial_tier is string &&
+        data.commercial_tier in ['free', 'standard', 'pro', 'exclusive', 'commercial'])) &&
+      (!('commercial_tiers' in data) || (data.commercial_tiers is list && data.commercial_tiers.size() <= 10)) &&
+      (!('tenant_id' in data) || (data.tenant_id is string && data.tenant_id.size() <= 128)) &&
+      (!('playsCount' in data) || (data.playsCount is number && data.playsCount >= 0)) &&
+      (!('likesCount' in data) || (data.likesCount is number && data.likesCount >= 0)) &&
+      (!('repostsCount' in data) || (data.repostsCount is number && data.repostsCount >= 0)) &&
+      (!('commentsCount' in data) || (data.commentsCount is number && data.commentsCount >= 0)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
-    // Admins lookup
-    match /admins/{adminId} {
-      allow read: if isSignedIn();
+    function isValidInteraction(data, trackId) {
+      return hasOnlyAllowedFields([
+        'id', 'user_id', 'userId', 'track_id', 'trackId', 'event_type', 'eventType',
+        'timestamp', 'createdAt', 'duration_listened', 'durationListened',
+        'source', 'device', 'metadata'
+      ]) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (('user_id' in data && data.user_id is string && data.user_id.size() <= 128) ||
+       ('userId' in data && data.userId is string && data.userId.size() <= 128)) &&
+      (!('track_id' in data) || data.track_id == trackId) &&
+      (!('trackId' in data) || data.trackId == trackId) &&
+      (('event_type' in data && data.event_type is string && data.event_type.size() <= 50) ||
+       ('eventType' in data && data.eventType is string && data.eventType.size() <= 50)) &&
+      (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 50)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('duration_listened' in data) || (data.duration_listened is number && data.duration_listened >= 0 && data.duration_listened <= 86400)) &&
+      (!('durationListened' in data) || (data.durationListened is number && data.durationListened >= 0 && data.durationListened <= 86400)) &&
+      (!('source' in data) || (data.source is string && data.source.size() <= 100)) &&
+      (!('device' in data) || (data.device is string && data.device.size() <= 100)) &&
+      (!('metadata' in data) || (data.metadata is map && data.metadata.size() <= 20));
+    }
+
+    function isValidTelemetry(data, trackId) {
+      return hasOnlyAllowedFields([
+        'id', 'track_id', 'trackId', 'metric_type', 'metricType', 'value',
+        'timestamp', 'createdAt', 'metrics'
+      ]) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('track_id' in data) || data.track_id == trackId) &&
+      (!('trackId' in data) || data.trackId == trackId) &&
+      (('metric_type' in data && data.metric_type is string && data.metric_type.size() <= 50) ||
+       ('metricType' in data && data.metricType is string && data.metricType.size() <= 50)) &&
+      (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 50)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('metrics' in data) || (data.metrics is map && data.metrics.size() <= 30));
+    }
+
+    function isValidPrivateSplit(data, trackId) {
+      return hasOnlyAllowedFields([
+        'id', 'track_id', 'trackId', 'recipient_id', 'recipientId', 'collaborator_id',
+        'collaboratorId', 'percentage', 'share', 'role', 'recipient_email',
+        'recipientEmail', 'createdAt', 'updatedAt'
+      ]) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('track_id' in data) || data.track_id == trackId) &&
+      (!('trackId' in data) || data.trackId == trackId) &&
+      (('recipient_id' in data && data.recipient_id is string && data.recipient_id.size() <= 128) ||
+       ('recipientId' in data && data.recipientId is string && data.recipientId.size() <= 128) ||
+       ('collaborator_id' in data && data.collaborator_id is string && data.collaborator_id.size() <= 128) ||
+       ('collaboratorId' in data && data.collaboratorId is string && data.collaboratorId.size() <= 128)) &&
+      (('percentage' in data && data.percentage is number && data.percentage >= 0 && data.percentage <= 100) ||
+       ('share' in data && data.share is number && data.share >= 0 && data.share <= 100)) &&
+      (!('role' in data) || (data.role is string && data.role.size() <= 50)) &&
+      (!('recipient_email' in data) || (data.recipient_email is string && data.recipient_email.size() <= 100)) &&
+      (!('recipientEmail' in data) || (data.recipientEmail is string && data.recipientEmail.size() <= 100)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidTenant(data) {
+      return hasOnlyAllowedFields([
+        'id', 'name', 'slug', 'description', 'logoUrl', 'website', 'contactEmail',
+        'rosterArtistIds', 'status', 'createdAt', 'updatedAt'
+      ]) &&
+      ('name' in data && data.name is string && data.name.size() >= 1 && data.name.size() <= 150) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('slug' in data) || (data.slug is string && data.slug.size() <= 100)) &&
+      (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+      (!('logoUrl' in data) || isValidUrl(data.logoUrl)) &&
+      (!('website' in data) || (data.website is string && data.website.size() <= 500)) &&
+      (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 100)) &&
+      (!('rosterArtistIds' in data) || (data.rosterArtistIds is list && data.rosterArtistIds.size() <= 500)) &&
+      (!('status' in data) || (data.status is string && data.status in ['active', 'suspended', 'pending'])) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidLike(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'trackId', 'createdAt']) &&
+        ('userId' in data && data.userId is string && data.userId.size() <= 128) &&
+        ('trackId' in data && data.trackId is string && data.trackId.size() <= 128) &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidComment(data) {
+      return hasOnlyAllowedFields([
+        'id', 'userId', 'trackId', 'parentId', 'content', 'likesCount', 'createdAt', 'updatedAt'
+      ]) &&
+      ('userId' in data && data.userId is string && data.userId.size() <= 128) &&
+      ('trackId' in data && data.trackId is string && data.trackId.size() <= 128) &&
+      ('content' in data && data.content is string && data.content.size() >= 1 && data.content.size() <= 1000) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128)) &&
+      (!('likesCount' in data) || (data.likesCount is number && data.likesCount >= 0)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidPlaylist(data) {
+      return hasOnlyAllowedFields([
+        'id', 'userId', 'title', 'description', 'isPublic', 'coverUrl', 'coverVideoUrl',
+        'coverType', 'type', 'tracksCount', 'trackIds', 'createdAt', 'updatedAt'
+      ]) &&
+      ('userId' in data && data.userId is string && data.userId.size() <= 128) &&
+      ('title' in data && data.title is string && data.title.size() >= 1 && data.title.size() <= 100) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+      (!('isPublic' in data) || (data.isPublic is bool)) &&
+      (!('coverUrl' in data) || isValidUrl(data.coverUrl)) &&
+      (!('coverVideoUrl' in data) || isValidUrl(data.coverVideoUrl)) &&
+      (!('coverType' in data) || (data.coverType is string && data.coverType in ['image', 'video'])) &&
+      (!('type' in data) || (data.type is string && data.type in ['playlist', 'album'])) &&
+      (!('tracksCount' in data) || (data.tracksCount is number && data.tracksCount >= 0)) &&
+      (!('trackIds' in data) || (data.trackIds is list && data.trackIds.size() <= 500)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+      (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidFollow(data) {
+      return hasOnlyAllowedFields(['id', 'followerId', 'followingId', 'createdAt']) &&
+        ('followerId' in data && data.followerId is string && data.followerId.size() <= 128) &&
+        ('followingId' in data && data.followingId is string && data.followingId.size() <= 128) &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidDirectMessage(data) {
+      return hasOnlyAllowedFields([
+        'id', 'senderId', 'senderName', 'senderAvatar', 'recipientIds',
+        'recipientNames', 'content', 'createdAt'
+      ]) &&
+      ('senderId' in data && data.senderId is string && data.senderId.size() <= 128) &&
+      ('recipientIds' in data && data.recipientIds is list && data.recipientIds.size() >= 1 && data.recipientIds.size() <= 50) &&
+      ('content' in data && data.content is string && data.content.size() >= 1 && data.content.size() <= 5000) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('senderName' in data) || (data.senderName is string && data.senderName.size() <= 100)) &&
+      (!('senderAvatar' in data) || isValidUrl(data.senderAvatar)) &&
+      (!('recipientNames' in data) || (data.recipientNames is list && data.recipientNames.size() <= 50)) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidReport(data) {
+      return hasOnlyAllowedFields([
+        'id', 'reporterId', 'reportedType', 'reportedId', 'reason', 'status', 'createdAt'
+      ]) &&
+      ('reporterId' in data && data.reporterId is string && data.reporterId.size() <= 128) &&
+      ('reportedType' in data && data.reportedType is string && data.reportedType in ['track', 'user', 'comment']) &&
+      ('reportedId' in data && data.reportedId is string && data.reportedId.size() <= 128) &&
+      ('reason' in data && data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 1000) &&
+      (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+      (!('status' in data) || (data.status is string && data.status in ['pending', 'resolved', 'dismissed'])) &&
+      (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. Connection Test Ping
+    match /test/{testId} {
+      allow get: if true;
       allow write: if false;
     }
 
-    // Users collection
+    // 2. Super Admin Directory
+    match /admins/{adminId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // 3. System Configuration
+    match /config/{configId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // 4. Multi-Tenant Record Labels
+    match /tenants/{labelId} {
+      allow read: if isSuperAdmin() ||
+        (isRecordLabel() && 'tenant_id' in request.auth.token && request.auth.token.tenant_id == labelId);
+      allow create: if isValidId(labelId) &&
+        (isSuperAdmin() ||
+         (isRecordLabel() && 'tenant_id' in request.auth.token && request.auth.token.tenant_id == labelId &&
+          isValidTenant(incoming()) && (!('id' in incoming()) || incoming().id == labelId)));
+      allow update: if isValidId(labelId) &&
+        (isSuperAdmin() ||
+         (isRecordLabel() && 'tenant_id' in request.auth.token && request.auth.token.tenant_id == labelId &&
+          isValidTenant(incoming()) &&
+          (!('id' in incoming()) || incoming().id == resource.data.id) &&
+          (!('createdAt' in incoming()) || !('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt)));
+      allow delete: if isSuperAdmin() && isValidId(labelId);
+    }
+
+    // 5. Users Collection
     match /users/{userId} {
-      allow get: if isValidId(userId);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId &&
-        isValidUser(incoming()) && (incoming().role == 'user' || isAdmin());
-      allow update: if isSignedIn() && isValidId(userId) &&
-        (request.auth.uid == userId || isAdmin()) &&
+      // Public profiles readable by guests, listeners, artists, labels, and admins
+      allow read: if isValidId(userId);
+
+      // User document creation (Self or Admin)
+      allow create: if isSignedIn() &&
+        isValidId(userId) &&
+        (request.auth.uid == userId || isSuperAdmin()) &&
         isValidUser(incoming()) &&
-        (isAdmin() || incoming().role == existing().role);
-      allow delete: if isAdmin() && isValidId(userId);
+        (!('id' in incoming()) || incoming().id == userId) &&
+        // Non-admins cannot bootstrap high-privilege administrative roles
+        (isSuperAdmin() || incoming().role in ['user', 'listener_user', 'artist_producer']);
+
+      // Profile updates with strict role lockdown and ownership checks
+      allow update: if isSignedIn() &&
+        isValidId(userId) &&
+        (request.auth.uid == userId || isSuperAdmin()) &&
+        isValidUser(incoming()) &&
+        // Role and tenant tampering protections
+        (isSuperAdmin() || (
+          incoming().role == resource.data.role &&
+          (!('tenant_id' in incoming()) || !('tenant_id' in resource.data) || incoming().tenant_id == resource.data.tenant_id)
+        )) &&
+        // Immutable identity and audit fields
+        (!('id' in incoming()) || !('id' in resource.data) || incoming().id == resource.data.id) &&
+        (!('email' in incoming()) || !('email' in resource.data) || incoming().email == resource.data.email) &&
+        (!('createdAt' in incoming()) || !('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt);
+
+      allow delete: if isSuperAdmin() && isValidId(userId);
     }
 
-    // Tracks collection
+    // 6. Tracks Collection and Restricted Subcollections
     match /tracks/{trackId} {
-      allow get, list: if true;
-      allow create: if isValidId(trackId) && isValidTrack(incoming());
-      allow update: if isValidId(trackId) && isValidTrack(incoming()) &&
-        (!isSignedIn() || resource.data.userId == request.auth.uid || isAdmin() || resource.data.userId == incoming().userId);
-      allow delete: if isValidId(trackId) &&
-        (!isSignedIn() || resource.data.userId == request.auth.uid || isAdmin());
+      // Public tracks readable by all; private tracks restricted to owner, label, or admin
+      allow read: if isValidId(trackId) && canReadTrackDocument(resource.data);
+
+      // Track creation: super_admin or artist_producer (or record_label for their roster)
+      allow create: if isSignedIn() &&
+        isValidId(trackId) &&
+        isValidTrack(incoming()) &&
+        (!('id' in incoming()) || incoming().id == trackId) &&
+        (
+          isSuperAdmin() ||
+          (isArtistProducer() && (
+            (!('artist_id' in incoming()) || incoming().artist_id == request.auth.uid) &&
+            (!('userId' in incoming()) || incoming().userId == request.auth.uid) &&
+            ('artist_id' in incoming() || 'userId' in incoming())
+          )) ||
+          (isRecordLabel() && 'tenant_id' in request.auth.token &&
+           'tenant_id' in incoming() && incoming().tenant_id == request.auth.token.tenant_id)
+        );
+
+      // Track updates: atomic playsCount increment by listeners, or metadata edit by owner/label/admin
+      allow update: if isValidId(trackId) && (
+        isTrackPlayIncrement() ||
+        (
+          isValidTrack(incoming()) &&
+          areTrackOwnersUnchanged() &&
+          (
+            isSuperAdmin() ||
+            (isArtistProducer() && trackBelongsToArtist(resource.data)) ||
+            (isRecordLabel() && trackBelongsToLabel(resource.data))
+          )
+        )
+      );
+
+      // Deletion: owner artist or super admin only
+      allow delete: if isValidId(trackId) && (
+        isSuperAdmin() ||
+        (isArtistProducer() && trackBelongsToArtist(resource.data))
+      );
+
+      // --- Subcollection: Interactions (Event logging by listeners & buyers) ---
+      match /interactions/{interactionId} {
+        // Read: Interaction author, parent track artist, label of tenant, or super admin
+        allow read: if isSuperAdmin() ||
+          (isSignedIn() && (
+            ('user_id' in resource.data && resource.data.user_id == request.auth.uid) ||
+            ('userId' in resource.data && resource.data.userId == request.auth.uid)
+          )) ||
+          (existsTrack(trackId) && (
+            (isArtistProducer() && trackBelongsToArtist(getTrack(trackId))) ||
+            trackBelongsToLabel(getTrack(trackId))
+          ));
+
+        // Create: Any authenticated user / listener recording their interaction event
+        allow create: if isSignedIn() &&
+          isValidId(interactionId) &&
+          existsTrack(trackId) &&
+          (
+            ('user_id' in incoming() && incoming().user_id == request.auth.uid) ||
+            ('userId' in incoming() && incoming().userId == request.auth.uid)
+          ) &&
+          isValidInteraction(incoming(), trackId);
+
+        // Interaction events are immutable event audit logs
+        allow update: if false;
+
+        allow delete: if isSuperAdmin() ||
+          (isSignedIn() && (
+            ('user_id' in resource.data && resource.data.user_id == request.auth.uid) ||
+            ('userId' in resource.data && resource.data.userId == request.auth.uid)
+          ));
+      }
+
+      // --- Subcollection: Telemetry & Diagnostics (Artist, Label, Admin ONLY) ---
+      match /telemetry/{telemetryId} {
+        allow read: if canAccessRestrictedTrackData(trackId);
+        allow create, update: if canAccessRestrictedTrackData(trackId) &&
+          isValidTelemetry(incoming(), trackId);
+        allow delete: if canAccessRestrictedTrackData(trackId);
+      }
+
+      // --- Subcollection: Private Royalty Splits (Artist, Label, Admin ONLY) ---
+      match /private_splits/{splitId} {
+        allow read: if canAccessRestrictedTrackData(trackId);
+        allow create, update: if canAccessRestrictedTrackData(trackId) &&
+          isValidPrivateSplit(incoming(), trackId);
+        allow delete: if canAccessRestrictedTrackData(trackId);
+      }
+
+      // --- Subcollection: Royalty Splits Alias (Artist, Label, Admin ONLY) ---
+      match /royalty_splits/{splitId} {
+        allow read: if canAccessRestrictedTrackData(trackId);
+        allow create, update: if canAccessRestrictedTrackData(trackId) &&
+          isValidPrivateSplit(incoming(), trackId);
+        allow delete: if canAccessRestrictedTrackData(trackId);
+      }
+
+      // --- Subcollection: Internal Algorithmic Attribution (Listeners/Public BLOCKED) ---
+      match /algorithmic_attribution/{attrId} {
+        allow read: if canAccessRestrictedTrackData(trackId);
+        allow write: if isSuperAdmin();
+      }
+
+      // --- Subcollection: Internal Neural Weights (Super Admin ONLY) ---
+      match /neural_weights/{weightId} {
+        allow read, write: if isSuperAdmin();
+      }
     }
 
-    // Likes collection
+    // 7. Likes Collection
     match /likes/{likeId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && isValidId(likeId) &&
+      allow read: if isValidId(likeId);
+      allow create: if isSignedIn() &&
+        isValidId(likeId) &&
+        isValidLike(incoming()) &&
         incoming().userId == request.auth.uid;
-      allow delete: if isSignedIn() && isValidId(likeId) &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if false;
+      allow delete: if isSignedIn() &&
+        isValidId(likeId) &&
+        (resource.data.userId == request.auth.uid || isSuperAdmin());
     }
 
-    // Comments collection
+    // 8. Comments Collection
     match /comments/{commentId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && isValidId(commentId) &&
-        incoming().userId == request.auth.uid &&
-        incoming().content is string && incoming().content.size() <= 1000;
-      allow update: if isSignedIn() && isValidId(commentId) &&
-        resource.data.userId == request.auth.uid &&
-        incoming().content is string && incoming().content.size() <= 1000 &&
-        incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isValidId(commentId) &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isValidId(commentId);
+      allow create: if isSignedIn() &&
+        isValidId(commentId) &&
+        isValidComment(incoming()) &&
+        incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() &&
+        isValidId(commentId) &&
+        isValidComment(incoming()) &&
+        (resource.data.userId == request.auth.uid || isSuperAdmin()) &&
+        incoming().userId == resource.data.userId &&
+        incoming().trackId == resource.data.trackId &&
+        (!('createdAt' in incoming()) || !('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt);
+      allow delete: if isSignedIn() &&
+        isValidId(commentId) &&
+        (resource.data.userId == request.auth.uid || isSuperAdmin());
     }
 
-    // Playlists collection
+    // 9. Playlists Collection
     match /playlists/{playlistId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && isValidId(playlistId) &&
-        incoming().userId == request.auth.uid &&
-        incoming().title is string && incoming().title.size() <= 100;
-      allow update: if isSignedIn() && isValidId(playlistId) &&
-        (resource.data.userId == request.auth.uid || isAdmin()) &&
-        incoming().title is string && incoming().title.size() <= 100 &&
-        incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isValidId(playlistId) &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isValidId(playlistId);
+      allow create: if isSignedIn() &&
+        isValidId(playlistId) &&
+        isValidPlaylist(incoming()) &&
+        incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() &&
+        isValidId(playlistId) &&
+        isValidPlaylist(incoming()) &&
+        (resource.data.userId == request.auth.uid || isSuperAdmin()) &&
+        incoming().userId == resource.data.userId &&
+        (!('createdAt' in incoming()) || !('createdAt' in resource.data) || incoming().createdAt == resource.data.createdAt);
+      allow delete: if isSignedIn() &&
+        isValidId(playlistId) &&
+        (resource.data.userId == request.auth.uid || isSuperAdmin());
     }
 
-    // Follows collection
+    // 10. Follows Collection
     match /follows/{followId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && isValidId(followId) &&
+      allow read: if isValidId(followId);
+      allow create: if isSignedIn() &&
+        isValidId(followId) &&
+        isValidFollow(incoming()) &&
         incoming().followerId == request.auth.uid;
-      allow delete: if isSignedIn() && isValidId(followId) &&
-        (resource.data.followerId == request.auth.uid || isAdmin());
+      allow update: if false;
+      allow delete: if isSignedIn() &&
+        isValidId(followId) &&
+        (resource.data.followerId == request.auth.uid || isSuperAdmin());
     }
+
+    // 11. Direct Messages Collection
+    match /direct_messages/{messageId} {
+      allow read: if isSignedIn() && (
+        isSuperAdmin() ||
+        resource.data.senderId == request.auth.uid ||
+        request.auth.uid in resource.data.recipientIds
+      );
+      allow create: if isSignedIn() &&
+        isValidId(messageId) &&
+        isValidDirectMessage(incoming()) &&
+        incoming().senderId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn() &&
+        isValidId(messageId) &&
+        (resource.data.senderId == request.auth.uid || isSuperAdmin());
+    }
+
+    // 12. Moderation Reports Collection
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && (
+        isSuperAdmin() ||
+        resource.data.reporterId == request.auth.uid
+      );
+      allow create: if isSignedIn() &&
+        isValidId(reportId) &&
+        isValidReport(incoming()) &&
+        incoming().reporterId == request.auth.uid;
+      allow update, delete: if isSuperAdmin();
+    }
+
   }
 }
