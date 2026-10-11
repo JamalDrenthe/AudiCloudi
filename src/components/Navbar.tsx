@@ -58,13 +58,10 @@ export function Navbar() {
       <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-full gap-3 sm:gap-6">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group" aria-label="Home">
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-              <img src={logoImg} alt="CloudiAudi" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(40,80,180,0.4)]" />
+              <img src={logoImg} alt="CloudiAudi Logo" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(40,80,180,0.4)]" />
             </div>
-            <span className="text-sm font-semibold tracking-[-0.02em] text-[#f5f5f7] hidden sm:block group-hover:text-white transition-colors">
-              CloudiAudi
-            </span>
           </Link>
 
           {/* Navigation Links - Desktop */}
@@ -279,13 +276,11 @@ export function Navbar() {
             to="/"
             onClick={() => setIsMobileMenuOpen(false)}
             className="flex items-center gap-2.5"
+            aria-label="Home"
           >
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
-              <img src={logoImg} alt="CloudiAudi" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(40,80,180,0.4)]" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-200 active:scale-95">
+              <img src={logoImg} alt="CloudiAudi Logo" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(40,80,180,0.4)]" />
             </div>
-            <span className="text-sm font-semibold tracking-[-0.02em] text-[#f5f5f7]">
-              CloudiAudi
-            </span>
           </Link>
 
           <button
