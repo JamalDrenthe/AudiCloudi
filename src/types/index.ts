@@ -35,6 +35,35 @@ export interface User {
   location?: string;
   website?: string;
   verified?: boolean;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  verificationLegalName?: string;
+  verificationDocType?: 'paspoort' | 'id_kaart' | 'rijbewijs';
+  verificationDocUrl?: string;
+  verificationSubmittedAt?: string;
+  verificationRejectionReason?: string;
+  isClaimed?: boolean;
+  claimedByUserId?: string;
+}
+
+export interface VerificationRequest {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  userName: string;
+  userAvatar: string;
+  artistId?: string;
+  artistName?: string;
+  legalName: string;
+  docType: 'paspoort' | 'id_kaart' | 'rijbewijs';
+  docNumber?: string;
+  docUrl: string;
+  selfieUrl?: string;
+  proofUrl?: string;
+  notes?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  submittedAt: string;
+  reviewedAt?: string;
 }
 
 export interface DirectMessage {

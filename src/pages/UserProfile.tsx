@@ -21,6 +21,7 @@ import {
   Music2,
   Users,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { TrackCover } from '@/components/TrackCover';
 import { ShareTrackModal } from '@/components/ShareTrackModal';
 import { DirectMessageModal } from '@/components/DirectMessageModal';
+import { ArtistVerificationModal } from '@/components/ArtistVerificationModal';
 import { useAuth } from '@/context/AuthContext';
 import { useTracks } from '@/context/TrackContext';
 import { usePlayer } from '@/context/PlayerContext';
@@ -231,6 +233,8 @@ export function UserProfile({ defaultUserId }: { defaultUserId?: string } = {}) 
   const [selectedShareTrack, setSelectedShareTrack] = useState<Track | null>(null);
   const [isDMOpen, setIsDMOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [verificationModalMode, setVerificationModalMode] = useState<'claim' | 'verify'>('verify');
 
   // Edit form state
   const [editDisplayName, setEditDisplayName] = useState('');
@@ -631,12 +635,22 @@ export function UserProfile({ defaultUserId }: { defaultUserId?: string } = {}) 
                         {user.plan}
                       </span>
                     ) : null}
-                    {user.verified && (
-                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
+                    {user.verified ? (
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         Geverifieerd
                       </span>
-                    )}
+                    ) : user.verificationStatus === 'pending' ? (
+                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                        ID-Verificatie in Behandeling
+                      </span>
+                    ) : user.verificationStatus === 'rejected' ? (
+                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                        Verificatie Afgewezen
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Subline: username + label affiliation + genre + location */}
@@ -824,6 +838,42 @@ export function UserProfile({ defaultUserId }: { defaultUserId?: string } = {}) 
                   </Button>
                 )}
 
+                {/* Claim Profile Button (For Unclaimed/Unverified Artist Profiles) */}
+                {!isOwnProfile && !isLabel && (!user.isClaimed || !user.verified) && (
+                  <Button
+                    variant="secondary"
+                    className="rounded-full bg-gradient-to-r from-amber-500/20 via-[#fa233b]/20 to-purple-500/20 hover:from-amber-500/30 hover:to-[#fa233b]/30 text-white border border-amber-500/30 text-xs font-semibold shadow-sm"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        toast.error('Log eerst in om dit artiestenprofiel te claimen.');
+                        return;
+                      }
+                      setVerificationModalMode('claim');
+                      setIsVerificationModalOpen(true);
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
+                    Profiel Claimen
+                  </Button>
+                )}
+
+                {/* Verification Request Button (For Own Profile) */}
+                {isOwnProfile && !user.verified && (
+                  <Button
+                    variant="secondary"
+                    className="rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold"
+                    onClick={() => {
+                      setVerificationModalMode('verify');
+                      setIsVerificationModalOpen(true);
+                    }}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                    {user.verificationStatus === 'pending'
+                      ? 'ID In Behandeling'
+                      : 'Vinkje Aanvragen (ID/Paspoort)'}
+                  </Button>
+                )}
+
                 {/* Edit Profile Button */}
                 {isOwnProfile ? (
                   <Button
@@ -926,6 +976,80 @@ export function UserProfile({ defaultUserId }: { defaultUserId?: string } = {}) 
                 <p className="text-xs text-[#86868b]">Totale Plays</p>
               </div>
             </div>
+
+            {/* CLAIM OR VERIFY NOTIFICATION BANNER */}
+            {!user.isClaimed && !isOwnProfile && !isLabel && (
+              <div className="mt-6 p-4 rounded-3xl bg-gradient-to-r from-amber-500/[0.08] via-[#fa233b]/[0.08] to-purple-500/[0.08] border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-xl">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0 border border-amber-500/30">
+                    <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white flex items-center gap-2">
+                      <span>Ben jij {user.displayName}? Claim dit artiestenprofiel</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        Claimbaar
+                      </span>
+                    </p>
+                    <p className="text-xs text-[#86868b] mt-0.5">
+                      Verifieer je artiestenidentiteit met een ID-kaart of paspoort om dit officiële profiel direct over te nemen en het geverifieerde vinkje te activeren.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="apple"
+                  className="rounded-full text-xs font-semibold px-5 shrink-0"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toast.error('Log eerst in om dit artiestenprofiel te claimen.');
+                      return;
+                    }
+                    setVerificationModalMode('claim');
+                    setIsVerificationModalOpen(true);
+                  }}
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  Nu Claimen met ID
+                </Button>
+              </div>
+            )}
+
+            {isOwnProfile && !user.verified && (
+              <div className="mt-6 p-4 rounded-3xl bg-emerald-500/[0.06] border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-xl">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white flex items-center gap-2">
+                      <span>Officieel Artiestenvinkje Ontvangen</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                        {user.verificationStatus === 'pending' ? 'In Behandeling' : 'ID / Paspoort Vereist'}
+                      </span>
+                    </p>
+                    <p className="text-xs text-[#86868b] mt-0.5">
+                      {user.verificationStatus === 'pending'
+                        ? 'Je verificatieaanvraag met ID/paspoort is ingediend en wordt momenteel beoordeeld door de administrator.'
+                        : 'Upload een geldig paspoort of identiteitskaart om het officiële groene vinkje op je profiel te activeren.'}
+                    </p>
+                  </div>
+                </div>
+                {user.verificationStatus !== 'pending' && (
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-5 shrink-0"
+                    onClick={() => {
+                      setVerificationModalMode('verify');
+                      setIsVerificationModalOpen(true);
+                    }}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
+                    Verifieer met ID / Paspoort
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* PROFILE TABS */}
@@ -1612,6 +1736,14 @@ export function UserProfile({ defaultUserId }: { defaultUserId?: string } = {}) 
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ARTIST VERIFICATION & PROFILE CLAIM MODAL */}
+      <ArtistVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        targetArtist={user}
+        mode={verificationModalMode}
+      />
 
       <AudioPlayer />
     </div>

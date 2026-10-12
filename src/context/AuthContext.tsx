@@ -7,8 +7,8 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '@/lib/firebase';
-import type { User, AuthState, LoginFormData, RegisterFormData, DirectMessage } from '@/types';
-import { mockUsers, getUserById, updateMockUser } from '@/data/mockData';
+import type { User, AuthState, LoginFormData, RegisterFormData, DirectMessage, VerificationRequest } from '@/types';
+import { mockUsers, getUserById, updateMockUser, saveVerificationRequest, updateVerificationRequest } from '@/data/mockData';
 
 interface AuthContextType extends AuthState {
   login: (data: LoginFormData) => Promise<boolean>;
@@ -19,6 +19,32 @@ interface AuthContextType extends AuthState {
   updateUser: (user: User) => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   adminUpdateUser: (userId: string, updates: Partial<User>) => Promise<User | undefined>;
+  submitVerification: (data: {
+    artistId?: string;
+    artistName?: string;
+    legalName: string;
+    docType: 'paspoort' | 'id_kaart' | 'rijbewijs';
+    docNumber?: string;
+    docUrl: string;
+    selfieUrl?: string;
+    proofUrl?: string;
+    notes?: string;
+  }) => Promise<VerificationRequest>;
+  reviewVerification: (
+    requestId: string,
+    decision: 'approved' | 'rejected',
+    rejectionReason?: string
+  ) => Promise<boolean>;
+  claimArtistProfile: (
+    artistId: string,
+    data: {
+      legalName: string;
+      docType: 'paspoort' | 'id_kaart' | 'rijbewijs';
+      docUrl: string;
+      proofUrl?: string;
+      notes?: string;
+    }
+  ) => Promise<VerificationRequest>;
   followingIds: string[];
   followUser: (userId: string) => Promise<void>;
   unfollowUser: (userId: string) => Promise<void>;
@@ -543,6 +569,121 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updated;
   };
 
+  const submitVerification = async (data: {
+    artistId?: string;
+    artistName?: string;
+    legalName: string;
+    docType: 'paspoort' | 'id_kaart' | 'rijbewijs';
+    docNumber?: string;
+    docUrl: string;
+    selfieUrl?: string;
+    proofUrl?: string;
+    notes?: string;
+  }): Promise<VerificationRequest> => {
+    const currentUserId = state.user?.id || 'guest_temp';
+    const currentUserName = state.user?.displayName || 'Artiest';
+    const currentUserAvatar =
+      state.user?.avatarUrl ||
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop';
+
+    const newRequest: VerificationRequest = {
+      id: `verif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      userId: currentUserId,
+      userEmail: state.user?.email || 'artiest@cloudiaudi.com',
+      userName: currentUserName,
+      userAvatar: currentUserAvatar,
+      artistId: data.artistId,
+      artistName: data.artistName,
+      legalName: data.legalName.trim(),
+      docType: data.docType,
+      docNumber: data.docNumber?.trim(),
+      docUrl: data.docUrl,
+      selfieUrl: data.selfieUrl,
+      proofUrl: data.proofUrl?.trim(),
+      notes: data.notes?.trim(),
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+    };
+
+    saveVerificationRequest(newRequest);
+
+    // Update target profile status to pending
+    const targetId = data.artistId || state.user?.id;
+    if (targetId) {
+      await adminUpdateUser(targetId, {
+        verificationStatus: 'pending',
+        verificationSubmittedAt: new Date().toISOString(),
+        verificationLegalName: data.legalName.trim(),
+        verificationDocType: data.docType,
+        verificationDocUrl: data.docUrl,
+      });
+    }
+
+    return newRequest;
+  };
+
+  const reviewVerification = async (
+    requestId: string,
+    decision: 'approved' | 'rejected',
+    rejectionReason?: string
+  ): Promise<boolean> => {
+    const updatedReq = updateVerificationRequest(requestId, {
+      status: decision,
+      rejectionReason: decision === 'rejected' ? rejectionReason : undefined,
+    });
+    if (!updatedReq) return false;
+
+    const targetId = updatedReq.artistId || updatedReq.userId;
+    if (targetId) {
+      if (decision === 'approved') {
+        await adminUpdateUser(targetId, {
+          verified: true, // Grants official verified checkmark!
+          verificationStatus: 'verified',
+          isClaimed: true,
+          claimedByUserId: updatedReq.userId,
+          plan: 'artiest',
+        });
+        if (state.user && state.user.id === updatedReq.userId && updatedReq.artistId && updatedReq.artistId !== state.user.id) {
+          await updateProfile({
+            plan: 'artiest',
+            verified: true,
+            verificationStatus: 'verified',
+          });
+        }
+      } else {
+        await adminUpdateUser(targetId, {
+          verified: false,
+          verificationStatus: 'rejected',
+          verificationRejectionReason: rejectionReason,
+        });
+      }
+    }
+
+    return true;
+  };
+
+  const claimArtistProfile = async (
+    artistId: string,
+    data: {
+      legalName: string;
+      docType: 'paspoort' | 'id_kaart' | 'rijbewijs';
+      docUrl: string;
+      proofUrl?: string;
+      notes?: string;
+    }
+  ): Promise<VerificationRequest> => {
+    const targetArtist = getUserById(artistId);
+    return submitVerification({
+      artistId,
+      artistName: targetArtist?.displayName || artistId,
+      legalName: data.legalName,
+      docType: data.docType,
+      docUrl: data.docUrl,
+      proofUrl: data.proofUrl,
+      notes: data.notes || `Aanvraag tot claimen van artiestenprofiel ${targetArtist?.displayName || artistId}`,
+    });
+  };
+
   const sendDirectMessage = async (recipientIds: string[], recipientNames: string[], content: string) => {
     const currentSenderId = state.user?.id || 'admin_jamal';
     const currentSenderName = state.user?.displayName || 'Jamal Drenthe';
@@ -584,6 +725,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         updateProfile,
         adminUpdateUser,
+        submitVerification,
+        reviewVerification,
+        claimArtistProfile,
         followingIds,
         followUser,
         unfollowUser,

@@ -3,7 +3,6 @@ import { Link, Navigate } from 'react-router-dom';
 import {
   Users,
   Music,
-  Flag,
   TrendingUp,
   UserX,
   Trash2,
@@ -17,6 +16,8 @@ import {
   Search,
   Globe,
   Image as ImageIcon,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,8 +35,14 @@ import { Navbar } from '@/components/Navbar';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { TrackCover } from '@/components/TrackCover';
 import { useAuth } from '@/context/AuthContext';
-import { mockTracks, getUserById, getAllUsers, deleteMockUser } from '@/data/mockData';
-import type { User, UserSocials } from '@/types';
+import {
+  mockTracks,
+  getUserById,
+  getAllUsers,
+  deleteMockUser,
+  getVerificationRequests,
+} from '@/data/mockData';
+import type { User, UserSocials, VerificationRequest } from '@/types';
 import { toast } from 'sonner';
 
 // Mock reports
@@ -61,13 +68,18 @@ const mockReports = [
 ];
 
 export function Admin() {
-  const { user, isAuthenticated, adminUpdateUser } = useAuth();
+  const { user, isAuthenticated, adminUpdateUser, reviewVerification } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   // User list state
   const [userList, setUserList] = useState<User[]>(() => getAllUsers());
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilterRole, setUserFilterRole] = useState<'all' | 'label' | 'artiest' | 'user'>('all');
+
+  // Verification requests state
+  const [verificationList, setVerificationList] = useState<VerificationRequest[]>(() => getVerificationRequests());
+  const [verifFilterStatus, setVerifFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   // Edit user dialog state
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -86,20 +98,32 @@ export function Admin() {
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [editBannerUrl, setEditBannerUrl] = useState('');
   const [editSocials, setEditSocials] = useState<UserSocials>({});
+  const [editIsClaimed, setEditIsClaimed] = useState(false);
+  const [editVerificationStatus, setEditVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified');
+  const [editLegalName, setEditLegalName] = useState('');
 
-  // Sync users on custom event
+  // Sync users and verifications on custom events
   useEffect(() => {
-    const handler = () => {
+    const userHandler = () => {
       setUserList(getAllUsers());
     };
-    window.addEventListener('cloudiaudi:users_updated', handler);
-    return () => window.removeEventListener('cloudiaudi:users_updated', handler);
+    const verifHandler = () => {
+      setVerificationList(getVerificationRequests());
+    };
+    window.addEventListener('cloudiaudi:users_updated', userHandler);
+    window.addEventListener('cloudiaudi:verifications_updated', verifHandler);
+    return () => {
+      window.removeEventListener('cloudiaudi:users_updated', userHandler);
+      window.removeEventListener('cloudiaudi:verifications_updated', verifHandler);
+    };
   }, []);
 
   // Redirect if not admin
   if (!isAuthenticated || user?.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
+
+  const pendingVerifications = verificationList.filter((v) => v.status === 'pending');
 
   const stats = {
     totalUsers: userList.length,
@@ -108,6 +132,7 @@ export function Admin() {
     totalTracks: mockTracks.length,
     totalPlays: mockTracks.reduce((acc, t) => acc + t.playsCount, 0),
     pendingReports: mockReports.filter((r) => r.status === 'pending').length,
+    pendingVerifications: pendingVerifications.length,
   };
 
   const filteredUsers = useMemo(() => {
@@ -127,6 +152,13 @@ export function Admin() {
       return true;
     });
   }, [userList, userSearchQuery, userFilterRole]);
+
+  const filteredVerifications = useMemo(() => {
+    return verificationList.filter((v) => {
+      if (verifFilterStatus === 'all') return true;
+      return v.status === verifFilterStatus;
+    });
+  }, [verificationList, verifFilterStatus]);
 
   const handleOpenEdit = (targetUser: User) => {
     setEditingUser(targetUser);
@@ -156,11 +188,15 @@ export function Admin() {
             'shawn-basterd',
             'heg',
             'andreea-comandaru',
+            'lvl-bibi',
           ]
     );
     setEditAvatarUrl(targetUser.avatarUrl || '');
     setEditBannerUrl(targetUser.bannerUrl || '');
     setEditSocials(targetUser.socials || {});
+    setEditIsClaimed(Boolean(targetUser.isClaimed));
+    setEditVerificationStatus(targetUser.verificationStatus || (targetUser.verified ? 'verified' : 'unverified'));
+    setEditLegalName(targetUser.verificationLegalName || '');
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -181,6 +217,9 @@ export function Admin() {
         avatarUrl: editAvatarUrl.trim() || editingUser.avatarUrl,
         bannerUrl: editBannerUrl.trim() || editingUser.bannerUrl,
         socials: editSocials,
+        isClaimed: editIsClaimed,
+        verificationStatus: editVerificationStatus,
+        verificationLegalName: editLegalName.trim() || undefined,
       };
 
       if (editPlan === 'label' || editingUser.id === 'zheavenzy') {
@@ -220,6 +259,35 @@ export function Admin() {
     }
   };
 
+  const handleReviewVerification = async (
+    requestId: string,
+    decision: 'approved' | 'rejected',
+    artistName: string
+  ) => {
+    let reason: string | undefined;
+    if (decision === 'rejected') {
+      const inputReason = window.prompt(
+        'Reden voor afwijzing (bijv. Document onleesbaar, Ongeldig ID, of Naam komt niet overeen):',
+        'Document niet voldoende leesbaar of gegevens komen niet overeen'
+      );
+      if (inputReason === null) return;
+      reason = inputReason.trim();
+    }
+
+    const success = await reviewVerification(requestId, decision, reason);
+    if (success) {
+      setVerificationList(getVerificationRequests());
+      setUserList(getAllUsers());
+      if (decision === 'approved') {
+        toast.success(`Verificatie goedgekeurd! Vinkje toegekend aan ${artistName}.`);
+      } else {
+        toast.info(`Verificatie voor ${artistName} afgewezen.`);
+      }
+    } else {
+      toast.error('Fout bij het verwerken van de verificatie.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-[#f5f5f7] pb-24">
       <Navbar />
@@ -228,7 +296,7 @@ export function Admin() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">Admin Panel</h1>
-              <p className="text-[#86868b] mt-1 text-sm">Artiesten, labels & platform beheer</p>
+              <p className="text-[#86868b] mt-1 text-sm">Artiesten, labels, ID-verificaties & platform beheer</p>
             </div>
             <span className="px-3.5 py-1 rounded-full bg-white/10 text-white border border-white/15 text-xs font-medium flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
@@ -252,6 +320,18 @@ export function Admin() {
                 <span className="px-2 py-0.2 text-[10px] bg-white/15 rounded-full font-bold">
                   {userList.length}
                 </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="verifications"
+                className="rounded-full px-4 py-1.5 text-xs font-medium text-[#86868b] hover:text-white data-[state=active]:bg-white data-[state=active]:text-black transition-all flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>ID Verificaties & Claims</span>
+                {stats.pendingVerifications > 0 && (
+                  <span className="px-1.5 py-0.2 text-[10px] bg-emerald-500 text-black rounded-full font-bold">
+                    {stats.pendingVerifications}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="tracks"
@@ -288,11 +368,22 @@ export function Admin() {
 
                 <div className="p-6 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl shadow-lg">
                   <div className="flex items-center justify-between pb-2">
+                    <span className="text-xs font-medium text-[#86868b]">ID Verificaties</span>
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-3xl font-bold tracking-tight text-white mt-1">{stats.pendingVerifications}</div>
+                  <p className="text-xs text-emerald-400 mt-1 font-medium">
+                    {stats.pendingVerifications > 0 ? 'Vereist paspoort/ID controle' : 'Alle aanvragen verwerkt'}
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl shadow-lg">
+                  <div className="flex items-center justify-between pb-2">
                     <span className="text-xs font-medium text-[#86868b]">Total Tracks</span>
                     <Music className="w-4 h-4 text-[#86868b]" />
                   </div>
                   <div className="text-3xl font-bold tracking-tight text-white mt-1">{stats.totalTracks}</div>
-                  <p className="text-xs text-[#86868b] mt-1">23 Zheavenzy releases</p>
+                  <p className="text-xs text-[#86868b] mt-1">25 Zheavenzy releases (incl. LVL BiBi)</p>
                 </div>
 
                 <div className="p-6 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl shadow-lg">
@@ -304,15 +395,6 @@ export function Admin() {
                     {(stats.totalPlays / 1000).toFixed(1)}K
                   </div>
                   <p className="text-xs text-[#86868b] mt-1">Populaire cyphers & singles</p>
-                </div>
-
-                <div className="p-6 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl shadow-lg">
-                  <div className="flex items-center justify-between pb-2">
-                    <span className="text-xs font-medium text-[#86868b]">Pending Reports</span>
-                    <Flag className="w-4 h-4 text-[#86868b]" />
-                  </div>
-                  <div className="text-3xl font-bold tracking-tight text-white mt-1">{stats.pendingReports}</div>
-                  <p className="text-xs text-[#86868b] mt-1">Geen dringende meldingen</p>
                 </div>
               </div>
             </TabsContent>
@@ -421,11 +503,16 @@ export function Admin() {
                                   {item.displayName}
                                 </Link>
 
-                                {item.verified && (
-                                  <span title="Geverifieerd" className="text-emerald-400">
+                                {item.verified ? (
+                                  <span title="Geverifieerd Vinkje" className="text-emerald-400">
                                     <CheckCircle2 className="w-3.5 h-3.5 inline" />
                                   </span>
-                                )}
+                                ) : item.verificationStatus === 'pending' ? (
+                                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                    <ShieldCheck className="w-2.5 h-2.5 text-amber-400" />
+                                    ID in behandeling
+                                  </span>
+                                ) : null}
 
                                 {isLabel ? (
                                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
@@ -446,6 +533,12 @@ export function Admin() {
                                 {isAdminRole && (
                                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20">
                                     Admin
+                                  </span>
+                                )}
+
+                                {!item.isClaimed && isArtist && (
+                                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                                    Niet geclaimd
                                   </span>
                                 )}
                               </div>
@@ -519,7 +612,231 @@ export function Admin() {
               </div>
             </TabsContent>
 
-            {/* TAB 3: TRACK MODERATION */}
+            {/* TAB 3: ID VERIFICATIONS & CLAIMS */}
+            <TabsContent value="verifications">
+              <div className="p-6 sm:p-8 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold tracking-tight text-white flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                      ID- & Paspoort Verificaties van Artiesten
+                    </h2>
+                    <p className="text-xs text-[#86868b] mt-0.5">
+                      Controleer ingezonden paspoorten en ID-kaarten om artiestenaccounts officieel te verifiëren en van een vinkje te voorzien.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#1c1c1e] border border-white/10 self-stretch sm:self-auto overflow-x-auto">
+                    <button
+                      onClick={() => setVerifFilterStatus('all')}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        verifFilterStatus === 'all'
+                          ? 'bg-white text-black font-semibold'
+                          : 'text-[#86868b] hover:text-white'
+                      }`}
+                    >
+                      Alle ({verificationList.length})
+                    </button>
+                    <button
+                      onClick={() => setVerifFilterStatus('pending')}
+                      className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${
+                        verifFilterStatus === 'pending'
+                          ? 'bg-amber-400 text-black font-semibold shadow-sm'
+                          : 'text-[#86868b] hover:text-white'
+                      }`}
+                    >
+                      <span>In Behandeling</span>
+                      {stats.pendingVerifications > 0 && (
+                        <span className="px-1.5 py-0.2 text-[10px] bg-black text-amber-300 rounded-full font-bold">
+                          {stats.pendingVerifications}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setVerifFilterStatus('approved')}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        verifFilterStatus === 'approved'
+                          ? 'bg-emerald-500 text-black font-semibold'
+                          : 'text-[#86868b] hover:text-white'
+                      }`}
+                    >
+                      Goedgekeurd
+                    </button>
+                    <button
+                      onClick={() => setVerifFilterStatus('rejected')}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        verifFilterStatus === 'rejected'
+                          ? 'bg-rose-500 text-white font-semibold'
+                          : 'text-[#86868b] hover:text-white'
+                      }`}
+                    >
+                      Afgewezen
+                    </button>
+                  </div>
+                </div>
+
+                {/* Verification Cards */}
+                <div className="space-y-4 pt-1">
+                  {filteredVerifications.length === 0 ? (
+                    <div className="text-center py-12 rounded-2xl bg-[#1c1c1e]/40 border border-white/5">
+                      <ShieldCheck className="w-8 h-8 mx-auto text-[#86868b]/40 mb-2" />
+                      <p className="text-sm text-[#86868b]">Geen verificatieaanvragen in deze categorie.</p>
+                    </div>
+                  ) : (
+                    filteredVerifications.map((req) => (
+                      <div
+                        key={req.id}
+                        className={`p-5 rounded-3xl border transition-all ${
+                          req.status === 'pending'
+                            ? 'bg-amber-500/[0.04] border-amber-500/25'
+                            : req.status === 'approved'
+                            ? 'bg-emerald-500/[0.03] border-emerald-500/20'
+                            : 'bg-rose-500/[0.03] border-rose-500/20'
+                        }`}
+                      >
+                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                          {/* Applicant info */}
+                          <div className="flex items-start gap-4 min-w-0 flex-1">
+                            <Avatar className="w-12 h-12 ring-1 ring-white/10 shrink-0 bg-[#1c1c1e]">
+                              <AvatarImage src={req.userAvatar} />
+                              <AvatarFallback>{req.userName[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-white text-sm">{req.userName}</span>
+                                {req.artistName && req.artistName !== req.userName && (
+                                  <span className="text-xs text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 font-medium">
+                                    Claim voor: {req.artistName}
+                                  </span>
+                                )}
+                                <span
+                                  className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full capitalize ${
+                                    req.status === 'pending'
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                      : req.status === 'approved'
+                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {req.status === 'pending'
+                                    ? 'In Behandeling'
+                                    : req.status === 'approved'
+                                    ? 'Goedgekeurd (Vinkje Actief)'
+                                    : 'Afgewezen'}
+                                </span>
+                              </div>
+
+                              <div className="text-xs text-[#86868b] flex items-center gap-2 flex-wrap">
+                                <span className="text-white/90 font-medium">Wettelijke naam: {req.legalName}</span>
+                                <span>•</span>
+                                <span className="capitalize text-white/80">Document: {req.docType.replace('_', ' ')}</span>
+                                {req.docNumber && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-mono text-white/70">Nr: {req.docNumber}</span>
+                                  </>
+                                )}
+                                <span>•</span>
+                                <span>
+                                  {new Date(req.submittedAt).toLocaleDateString()}{' '}
+                                  {new Date(req.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+
+                              {req.notes && (
+                                <p className="text-xs text-[#86868b] italic pt-0.5 leading-relaxed">
+                                  "{req.notes}"
+                                </p>
+                              )}
+
+                              {req.proofUrl && (
+                                <div className="pt-1">
+                                  <a
+                                    href={req.proofUrl.startsWith('http') ? req.proofUrl : `https://${req.proofUrl}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-xs text-[#fa233b] hover:underline inline-flex items-center gap-1"
+                                  >
+                                    <Globe className="w-3 h-3" />
+                                    <span>Bekijk Bewijs / Social Link</span>
+                                  </a>
+                                </div>
+                              )}
+
+                              {req.rejectionReason && (
+                                <p className="text-xs text-rose-400 font-medium pt-1">
+                                  Reden afwijzing: {req.rejectionReason}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ID Document Preview Thumbnail & Actions */}
+                          <div className="flex items-center gap-4 shrink-0 self-stretch sm:self-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-white/10">
+                            {req.docUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDocUrl(req.docUrl)}
+                                className="group relative rounded-xl overflow-hidden border border-white/15 w-24 h-16 shrink-0 hover:scale-105 transition-all shadow-md bg-black"
+                                title="Klik om document op ware grootte te bekijken"
+                              >
+                                <img
+                                  src={req.docUrl}
+                                  alt="ID Document"
+                                  className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] text-white font-semibold">
+                                  Vergroot
+                                </div>
+                              </button>
+                            )}
+
+                            {req.status === 'pending' ? (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleReviewVerification(req.id, 'approved', req.artistName || req.userName)}
+                                  className="rounded-full bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-4 flex items-center gap-1.5 shadow-sm"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Goedkeuren & Vinkje</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleReviewVerification(req.id, 'rejected', req.artistName || req.userName)}
+                                  className="rounded-full text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs px-3"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 mr-1" />
+                                  <span>Afwijzen</span>
+                                </Button>
+                              </div>
+                            ) : req.status === 'approved' ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-emerald-400 flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Vinkje Toegekend
+                                </span>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleReviewVerification(req.id, 'approved', req.artistName || req.userName)}
+                                className="rounded-full bg-white/10 hover:bg-white/20 text-white text-xs px-3"
+                              >
+                                Heroverwegen (Goedkeuren)
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB 4: TRACK MODERATION */}
             <TabsContent value="tracks">
               <div className="p-6 sm:p-8 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl space-y-4">
                 <h2 className="text-xl font-semibold tracking-tight text-white">Track Moderation</h2>
@@ -562,7 +879,7 @@ export function Admin() {
               </div>
             </TabsContent>
 
-            {/* TAB 4: CONTENT REPORTS */}
+            {/* TAB 5: CONTENT REPORTS */}
             <TabsContent value="reports">
               <div className="p-6 sm:p-8 rounded-3xl bg-[#161617]/90 border border-white/[0.08] backdrop-blur-2xl space-y-4">
                 <h2 className="text-xl font-semibold tracking-tight text-white">Content Reports</h2>
@@ -656,7 +973,7 @@ export function Admin() {
                   : `Artiest / Profiel Aanpassen: ${editingUser.displayName}`}
               </DialogTitle>
               <DialogDescription className="text-sm text-[#86868b]">
-                Beheer metadata, verificatiestatus, volgers, visuele afbeeldingen en labelcontracten.
+                Beheer metadata, verificatiestatus, claimstatus, volgers en labelcontracten.
               </DialogDescription>
             </DialogHeader>
 
@@ -666,7 +983,7 @@ export function Admin() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-amber-400" />
-                    Admin Instellingen
+                    Admin Beheerdersinstellingen
                   </span>
                   <span className="text-[10px] text-amber-400/80 bg-amber-400/10 px-2 py-0.5 rounded-full font-mono">
                     ID: {editingUser.id}
@@ -699,10 +1016,15 @@ export function Admin() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-medium text-[#86868b]">Verificatie Status</label>
+                    <label className="text-[11px] font-medium text-[#86868b]">Verificatie Status (Vinkje)</label>
                     <button
                       type="button"
-                      onClick={() => setEditVerified(!editVerified)}
+                      onClick={() => {
+                        const next = !editVerified;
+                        setEditVerified(next);
+                        if (next) setEditVerificationStatus('verified');
+                        else setEditVerificationStatus('unverified');
+                      }}
                       className={`w-full h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
                         editVerified
                           ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
@@ -710,8 +1032,51 @@ export function Admin() {
                       }`}
                     >
                       <CheckCircle2 className={`w-3.5 h-3.5 ${editVerified ? 'text-emerald-400' : 'text-[#86868b]'}`} />
-                      <span>{editVerified ? 'Geverifieerd Vinkje' : 'Niet Geverifieerd'}</span>
+                      <span>{editVerified ? 'Geverifieerd Vinkje ✓' : 'Niet Geverifieerd'}</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* VERIFICATION & CLAIM CONTROLS */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-amber-500/20">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#86868b]">Claim Status</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditIsClaimed(!editIsClaimed)}
+                      className={`w-full h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                        editIsClaimed
+                          ? 'bg-blue-500/15 border-blue-500/30 text-blue-300'
+                          : 'bg-[#1c1c1e] border-white/10 text-[#86868b] hover:text-white'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                      <span>{editIsClaimed ? 'Geclaimd door Artiest' : 'Nog Niet Geclaimd'}</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#86868b]">ID-Status</label>
+                    <select
+                      value={editVerificationStatus}
+                      onChange={(e) => setEditVerificationStatus(e.target.value as 'unverified' | 'pending' | 'verified' | 'rejected')}
+                      className="w-full h-9 rounded-xl bg-[#1c1c1e] border border-white/10 text-xs text-white px-3 focus:outline-none"
+                    >
+                      <option value="unverified">Niet Geverifieerd</option>
+                      <option value="pending">In Behandeling (pending)</option>
+                      <option value="verified">Geverifieerd (ID akkoord)</option>
+                      <option value="rejected">Afgewezen</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#86868b]">Wettelijke Naam (op ID)</label>
+                    <Input
+                      value={editLegalName}
+                      onChange={(e) => setEditLegalName(e.target.value)}
+                      placeholder="Voor- en achternaam"
+                      className="h-9 rounded-xl bg-[#1c1c1e] border-white/10 text-white placeholder:text-[#86868b] text-xs"
+                    />
                   </div>
                 </div>
 
@@ -931,6 +1296,39 @@ export function Admin() {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* FULLSIZE DOCUMENT PREVIEW DIALOG */}
+      {previewDocUrl && (
+        <Dialog open={Boolean(previewDocUrl)} onOpenChange={(open) => !open && setPreviewDocUrl(null)}>
+          <DialogContent className="sm:max-w-3xl bg-[#161617]/95 border-white/10 text-white rounded-3xl backdrop-blur-3xl shadow-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-400" />
+                Ingezonden Identiteitsbewijs (Paspoort / ID)
+              </DialogTitle>
+              <DialogDescription className="text-xs text-[#86868b]">
+                Inspecteer de authenticiteit, naam, foto en documentgegevens van de artiest.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 rounded-2xl overflow-hidden border border-white/10 bg-black flex items-center justify-center max-h-[70vh]">
+              <img
+                src={previewDocUrl}
+                alt="Volledig Identiteitsbewijs"
+                className="max-h-[68vh] w-auto object-contain rounded-xl"
+              />
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button
+                variant="secondary"
+                className="rounded-full text-xs"
+                onClick={() => setPreviewDocUrl(null)}
+              >
+                Sluiten
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       )}

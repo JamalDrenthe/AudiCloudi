@@ -1,4 +1,4 @@
-import type { User, Track, Playlist, Comment, Genre, Notification } from '@/types';
+import type { User, Track, Playlist, Comment, Genre, Notification, VerificationRequest } from '@/types';
 
 // Mock Users
 export const mockUsers: User[] = [
@@ -7,7 +7,7 @@ export const mockUsers: User[] = [
     email: 'info@zheavenzy.com',
     username: 'zheavenzy',
     displayName: 'Zheavenzy',
-    bio: 'Het officiële platenlabel van Zheavenzy Records. De muzikale thuisbasis van Jamal Drenthe, Askylon, Rowu, Youandi, Raka VW, AR, Le3, Noddy North, Shawn Basterd, H.E.G. (High Educated Gangster) en Andreea Comandaru. Vernieuwende sounds in Hip-Hop, Urban, R&B, Trap en Electronic.',
+    bio: 'Het officiële platenlabel van Zheavenzy Records. De muzikale thuisbasis van Jamal Drenthe, Askylon, Rowu, Youandi, Raka VW, AR, Le3, Noddy North, Shawn Basterd, H.E.G. (High Educated Gangster), Andreea Comandaru en LVL BiBi. Vernieuwende sounds in Hip-Hop, Urban, R&B, Trap en Electronic.',
     avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop',
     bannerUrl: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=1400&h=450&fit=crop',
     role: 'user',
@@ -28,10 +28,11 @@ export const mockUsers: User[] = [
       'shawn-basterd',
       'heg',
       'andreea-comandaru',
+      'lvl-bibi',
     ],
-    followersCount: 48200,
-    followingCount: 11,
-    tracksCount: 23,
+    followersCount: 52400,
+    followingCount: 12,
+    tracksCount: 25,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-12-15T00:00:00Z',
     socials: {
@@ -324,6 +325,35 @@ export const mockUsers: User[] = [
     },
   },
   {
+    id: 'lvl-bibi',
+    email: 'lvlbibi@zheavenzy.com',
+    username: 'lvl-bibi',
+    displayName: 'LVL BiBi',
+    bio: 'Zheavenzy Artist. Fierce female power, sensuele melodieën, hypnotiserende trap & urban flow. Met haar herkenbare sound en charismatische uitstraling tilt LVL BiBi de vrouwelijke energie in de scene naar een heel nieuw level.',
+    avatarUrl: '/artists/lvl-bibi.jpg',
+    bannerUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1400&h=450&fit=crop',
+    role: 'user',
+    plan: 'artiest',
+    verified: false,
+    verificationStatus: 'unverified',
+    isClaimed: false,
+    labelId: 'zheavenzy',
+    labelName: 'Zheavenzy',
+    genre: 'Melodic Urban / Trap Pop / R&B',
+    location: 'Amsterdam / Nederland',
+    followersCount: 16800,
+    followingCount: 48,
+    tracksCount: 2,
+    createdAt: '2024-07-15T14:00:00Z',
+    updatedAt: '2024-12-15T18:00:00Z',
+    socials: {
+      instagram: 'lvl.bibi',
+      youtube: 'lvlbibi',
+      tiktok: 'lvlbibi_official',
+      x: 'lvlbibi',
+    },
+  },
+  {
     id: '1',
     email: 'alex@example.com',
     username: 'alexchen',
@@ -447,7 +477,7 @@ export const mockTracks: Track[] = [
     userId: 'zheavenzy',
     userName: 'Zheavenzy',
     title: 'Zheavenzy Roster Cypher 2026 (All-Stars)',
-    description: 'De officiële Zheavenzy Records anthem featuring Jamal Drenthe, Askylon, Rowu, Youandi, Raka VW, AR, Le3, Noddy North, Shawn Basterd, H.E.G. en Andreea Comandaru.',
+    description: 'De officiële Zheavenzy Records anthem featuring Jamal Drenthe, Askylon, Rowu, Youandi, Raka VW, AR, Le3, Noddy North, Shawn Basterd, H.E.G., Andreea Comandaru en LVL BiBi.',
     genre: 'Hip Hop',
     tags: ['zheavenzy', 'cypher', 'allstars', 'label', 'hiphop', 'trap'],
     duration: 380,
@@ -972,6 +1002,52 @@ export const mockTracks: Track[] = [
     updatedAt: '2024-11-16T15:00:00Z',
   },
   {
+    id: 'track_lvlbibi_1',
+    userId: 'lvl-bibi',
+    userName: 'LVL BiBi',
+    title: 'Next Level',
+    description: 'Bouncy 808s, futuristische synths en verleidelijke trap pop flows door LVL BiBi.',
+    genre: 'Urban',
+    tags: ['urban', 'trappop', 'lvlbibi', 'zheavenzy', 'nextlevel'],
+    duration: 195,
+    durationFormatted: '3:15',
+    waveformData: generateWaveform(),
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3',
+    coverUrl: '/artists/lvl-bibi.jpg',
+    isPrivate: false,
+    isExplicit: false,
+    license: 'all-rights-reserved',
+    playsCount: 34200,
+    likesCount: 3120,
+    repostsCount: 1140,
+    commentsCount: 215,
+    createdAt: '2024-12-14T14:00:00Z',
+    updatedAt: '2024-12-14T14:00:00Z',
+  },
+  {
+    id: 'track_lvlbibi_2',
+    userId: 'lvl-bibi',
+    userName: 'LVL BiBi',
+    title: 'Midnight Desire',
+    description: 'Sensuele late-night urban vibes en zwoele R&B vocalen over een diepe trap productie.',
+    genre: 'R&B',
+    tags: ['rnb', 'melodictrap', 'lvlbibi', 'midnightdesire', 'zheavenzy'],
+    duration: 214,
+    durationFormatted: '3:34',
+    waveformData: generateWaveform(),
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3',
+    coverUrl: '/artists/lvl-bibi.jpg',
+    isPrivate: false,
+    isExplicit: false,
+    license: 'all-rights-reserved',
+    playsCount: 26800,
+    likesCount: 2410,
+    repostsCount: 890,
+    commentsCount: 162,
+    createdAt: '2024-12-10T18:30:00Z',
+    updatedAt: '2024-12-10T18:30:00Z',
+  },
+  {
     id: '1',
     userId: '1',
     title: 'Neon Dreams',
@@ -1437,6 +1513,9 @@ export const getUserById = (id: string): User | undefined => {
   if (normalized === 'andreeacomandaru' || normalized === 'andreea_comandaru') {
     return mockUsers.find(u => u.id === 'andreea-comandaru' || u.username === 'andreea-comandaru');
   }
+  if (normalized === 'lvlbibi' || normalized === 'lvl-bibi' || normalized === 'lvl_bibi' || normalized === 'bibi') {
+    return mockUsers.find(u => u.id === 'lvl-bibi' || u.username === 'lvl-bibi');
+  }
   return mockUsers.find(
     user =>
       user.id.toLowerCase() === normalized ||
@@ -1495,6 +1574,105 @@ export const deleteMockUser = (userId: string): boolean => {
     }
   }
   return true;
+};
+
+// Mock ID & Passport verification requests
+export const mockVerificationRequests: VerificationRequest[] = [
+  {
+    id: 'verif_1',
+    userId: 'lvl-bibi',
+    userEmail: 'bibi.music@example.com',
+    userName: 'LVL BiBi',
+    userAvatar: '/artists/lvl-bibi.jpg',
+    artistId: 'lvl-bibi',
+    artistName: 'LVL BiBi',
+    legalName: 'Bibi van der Zee',
+    docType: 'paspoort',
+    docNumber: 'NX829104',
+    docUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&h=500&fit=crop',
+    selfieUrl: '/artists/lvl-bibi.jpg',
+    proofUrl: 'https://instagram.com/lvl.bibi',
+    notes: 'Officiële artiest van Zheavenzy Records. Verzoek tot account verificatie en claimen van het artiestenprofiel met officieel Nederlands paspoort.',
+    status: 'pending',
+    submittedAt: '2026-10-12T08:00:00Z',
+  },
+  {
+    id: 'verif_2',
+    userId: '4',
+    userEmail: 'luna@example.com',
+    userName: 'Luna Reyes',
+    userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
+    legalName: 'Luna Isabella Reyes',
+    docType: 'id_kaart',
+    docNumber: 'ID-8492019',
+    docUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&h=500&fit=crop',
+    selfieUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
+    proofUrl: 'https://spotify.com/artist/lunareyes',
+    notes: 'Indie artiest verificatieaanvraag met officiële identiteitskaart.',
+    status: 'pending',
+    submittedAt: '2026-10-11T14:30:00Z',
+  },
+];
+
+// Helper to get verification requests from localStorage
+export const getVerificationRequests = (): VerificationRequest[] => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('cloudiaudi_verifications');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return [...mockVerificationRequests];
+};
+
+// Helper to save or update verification request
+export const saveVerificationRequest = (req: VerificationRequest): void => {
+  const current = getVerificationRequests();
+  const existingIdx = current.findIndex(r => r.id === req.id);
+  let updatedList: VerificationRequest[];
+  if (existingIdx !== -1) {
+    updatedList = [...current];
+    updatedList[existingIdx] = req;
+  } else {
+    updatedList = [req, ...current];
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('cloudiaudi_verifications', JSON.stringify(updatedList));
+      window.dispatchEvent(new CustomEvent('cloudiaudi:verifications_updated', { detail: updatedList }));
+    } catch (e) {
+      console.warn('Could not save verification request:', e);
+    }
+  }
+};
+
+// Helper to review verification request
+export const updateVerificationRequest = (
+  id: string,
+  updates: Partial<VerificationRequest>
+): VerificationRequest | undefined => {
+  const current = getVerificationRequests();
+  const idx = current.findIndex(r => r.id === id);
+  if (idx === -1) return undefined;
+  const updated: VerificationRequest = {
+    ...current[idx],
+    ...updates,
+    reviewedAt: new Date().toISOString(),
+  };
+  current[idx] = updated;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('cloudiaudi_verifications', JSON.stringify(current));
+      window.dispatchEvent(new CustomEvent('cloudiaudi:verifications_updated', { detail: current }));
+    } catch (e) {
+      console.warn('Could not update verification request:', e);
+    }
+  }
+  return updated;
 };
 
 // Helper function to get all artists signed to a label

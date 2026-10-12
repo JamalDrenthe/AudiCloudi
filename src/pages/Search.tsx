@@ -52,6 +52,7 @@ const popularTags = [
   'Raka VW',
   'H.E.G.',
   'Andreea Comandaru',
+  'LVL BiBi',
   'Trap',
   'Hip Hop',
   'R&B',
