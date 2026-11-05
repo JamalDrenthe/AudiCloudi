@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Backend-FastAPI_%2B_PyTorch-3776AB?logo=python&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Google Cloud](https://img.shields.io/badge/Google_Cloud-Cloud_Run_%2B_BigQuery_%2B_Firestore-4285F4?logo=google-cloud&logoColor=white)](https://cloud.google.com/)
 [![Web Audio API](https://img.shields.io/badge/Audio_Engine-EBU_R128_-14_LUFS_%2B_WebAudio-FF5500)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-[![Live Demo](https://img.shields.io/badge/Live-audicloudi.vercel.app-8B5CF6?logo=vercel&logoColor=white)](https://audicloudi.vercel.app)
+[![Cloudflare Pages](https://img.shields.io/badge/Live-cloudiaudi.cloud-F38020?logo=cloudflare&logoColor=white)](https://cloudiaudi.cloud)
 
 > **Executive Summary (NL):** **AudiCloudi** (*CloudiAudi*) is een next-gen, multi-tenant muziek- en producerplatform dat drie werelden verenigt: **Spotify-achtige streaming-retentie** (`-14 LUFS` EBU R128 normalisatie, 30s survival-curves), **SoundCloud-achtige sociale interactie** (1000-punts interactieve waveform scrubbing, timestamped comments) en een **BeatStars-achtige B2B licentiemarktplaats** (`basic_mp3`, `wav_lease`, `trackout`, `exclusive` + royalty split-sheets). Onder de motorkap combineert deze repository een moderne **React 19 + Web Audio API** frontend met een wiskundig gespecificeerde **Python FastAPI, PyTorch CNN & Contextual Bandit** productie-backend (`backend/`).
 >
@@ -177,4 +177,4 @@ Ben je **recruiter**, **CTO**, **VP of Engineering** of **zakelijke partner** en
 
 - **GitHub**: [@JamalDrenthe](https://github.com/JamalDrenthe)
 - **E-mail**: [info@jamaldrenthe.com](mailto:info@jamaldrenthe.com)
-- **Live Demo**: [audicloudi.vercel.app](https://audicloudi.vercel.app)
+- **Live Platform**: [cloudiaudi.cloud](https://cloudiaudi.cloud)
