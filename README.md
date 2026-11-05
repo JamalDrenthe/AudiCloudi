@@ -6,15 +6,11 @@
 [![Web Audio API](https://img.shields.io/badge/Audio_Engine-EBU_R128_-14_LUFS_%2B_WebAudio-FF5500)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 [![Cloudflare Pages](https://img.shields.io/badge/Live-cloudiaudi.cloud-F38020?logo=cloudflare&logoColor=white)](https://cloudiaudi.cloud)
 
-> **Executive Summary (NL):** **AudiCloudi** (*CloudiAudi*) is een next-gen, multi-tenant muziek- en producerplatform dat drie werelden verenigt: **Spotify-achtige streaming-retentie** (`-14 LUFS` EBU R128 normalisatie, 30s survival-curves), **SoundCloud-achtige sociale interactie** (1000-punts interactieve waveform scrubbing, timestamped comments) en een **BeatStars-achtige B2B licentiemarktplaats** (`basic_mp3`, `wav_lease`, `trackout`, `exclusive` + royalty split-sheets). Onder de motorkap combineert deze repository een moderne **React 19 + Web Audio API** frontend met een wiskundig gespecificeerde **Python FastAPI, PyTorch CNN & Contextual Bandit** productie-backend (`backend/`).
->
-> **Executive Summary (EN):** **AudiCloudi** (*CloudiAudi*) is a full-stack, multi-tenant audio streaming and beat-licensing platform pairing a **React 19 + TypeScript + Web Audio API** frontend with a **Python FastAPI + PyTorch** recommendation & audio-processing backend. It features a 4-block Convolutional Deep Acoustic Embedding network ($\mathbb{R}^{256}$), a Clustered **LinUCB Contextual Bandit** with sub-1.5ms **Sherman-Morrison $O(d^2)$ online matrix updates**, **MMR + Gini Index** roster fairness re-ranking, **FFmpeg EBU R128 (`-14 LUFS`)** ingest workers, and **16-way sharded Firestore counters**.
+**AudiCloudi** (*CloudiAudi*, `cloudiaudi.cloud`) is een multi-tenant muziek- en producerplatform dat drie domeinen verenigt: **streaming-retentie** (`-14 LUFS` EBU R128 normalisatie, 30s survival-curves), **sociale interactie** (1000-punts interactieve waveform scrubbing, timestamped comments) en een **B2B licentiemarktplaats** (`basic_mp3`, `wav_lease`, `trackout`, `exclusive` + royalty split-sheets). De repository combineert een **React 19 + Web Audio API** frontend met een wiskundig gespecificeerde **Python FastAPI, PyTorch CNN & Contextual Bandit** productie-backend (`backend/`).
 
 ---
 
-## Waarom dit project technisch onderscheidend is (For Technical Recruiters, ML Engineers & CTOs)
-
-Waar standaard muziek-apps stoppen bij een audiospeler, bevat **AudiCloudi** zowel een rijke interactieve frontend als een volledig uitgeschreven, productie-klare **Machine Learning & Distributed Systems backend** ([`backend/`](backend/README.md) & [`backend/math_specification.md`](backend/math_specification.md)):
+## Technische Kernpunten
 
 1. **Convolutional Deep Acoustic Embedding Netwerk (`backend/ml_kernel/cnn_feature_extractor.py`)**:
    - Verwerkt 30-seconden audiosegmenten ($f_s = 22{,}050\text{ Hz}$, STFT met $N_{\text{fft}} = 2048$, hop $H = 512$) tot een Log-Mel Spectrogram $\mathbf{S} \in \mathbb{R}^{1 \times 128 \times 1292}$.
@@ -169,12 +165,10 @@ Open vervolgens `http://localhost:8080/docs` voor de interactieve OpenAPI / Swag
 
 ---
 
-## Over de Architect & Samenwerking
+## Auteur & Contact
 
-Ontworpen en gebouwd door **Jamal Drenthe** — Full-Stack Software Engineer, AI/ML Systems Architect & Founder van **Quantum Initium**.
+Ontworpen en ontwikkeld door **Jamal Drenthe** ([Quantum Initium](https://quantuminitium.com)).
 
-Ben je **recruiter**, **CTO**, **VP of Engineering** of **zakelijke partner** en zoek je iemand die zowel geavanceerde AI/recommender-backends (PyTorch, FastAPI, Contextual Bandits) als hoogwaardige consumenten- en B2B-webapplicaties (React 19, TypeScript) end-to-end kan realiseren?
-
+- **Website**: [cloudiaudi.cloud](https://cloudiaudi.cloud)
 - **GitHub**: [@JamalDrenthe](https://github.com/JamalDrenthe)
 - **E-mail**: [info@jamaldrenthe.com](mailto:info@jamaldrenthe.com)
-- **Live Platform**: [cloudiaudi.cloud](https://cloudiaudi.cloud)
